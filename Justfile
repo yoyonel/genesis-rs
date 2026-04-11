@@ -127,7 +127,7 @@ boot-debian:
 # Deploy and run a command on Debian VM
 deploy-debian cmd="bootstrap" target=TARGET:
 	scp -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -P 22221 target/{{target}}/release/genesis-rs genesis@localhost:/tmp/genesis-rs
-	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22221 genesis@localhost "/tmp/genesis-rs {{cmd}}"
+	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22221 genesis@localhost "chmod +x /tmp/genesis-rs && /tmp/genesis-rs {{cmd}}"
 
 # Boot Arch Linux VM
 boot-arch:
@@ -142,7 +142,7 @@ boot-arch:
 # Deploy and run a command on Arch Linux VM
 deploy-arch cmd="bootstrap" target=TARGET:
 	scp -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -P 22222 target/{{target}}/release/genesis-rs genesis@localhost:/tmp/genesis-rs
-	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22222 genesis@localhost "/tmp/genesis-rs {{cmd}}"
+	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22222 genesis@localhost "chmod +x /tmp/genesis-rs && /tmp/genesis-rs {{cmd}}"
 
 # Boot Raspbian VM (ARM64)
 boot-raspbian:
@@ -159,7 +159,7 @@ boot-raspbian:
 # Deploy and run a command on Raspbian VM (ARM64)
 deploy-raspbian cmd="bootstrap" target=ARM_TARGET:
 	scp -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -P 22223 target/{{target}}/release/genesis-rs genesis@localhost:/tmp/genesis-rs
-	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22223 genesis@localhost "/tmp/genesis-rs {{cmd}}"
+	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22223 genesis@localhost "chmod +x /tmp/genesis-rs && /tmp/genesis-rs {{cmd}}"
 
 # Wait for SSH to be ready on a specific port (300 tries = 10 minutes timeout)
 wait-ssh PORT:
