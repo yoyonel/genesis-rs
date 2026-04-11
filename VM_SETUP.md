@@ -2,103 +2,216 @@
 
 Pour garantir la valeur de cet outil, il faut le tester *in situ* sur ses cibles ! Étant donné que des solutions interactives type `quickemu` demandent une installation graphique manuelle bloquante (LiveCD), nous utilisons un banc de test QEMU natif complet et **totalement automatisé** basé sur des "Cloud Images".
 
-## 1. Pré-requis sur l'hôte
+## 1. Installation des dépendances
 
-Assurez-vous d'avoir les outils de virtualisation et de génération d'ISO (pour injecter votre utilisateur et clé SSH sans mot de passe via Cloud-Init) :
-- `qemu-system-x86_64` (ou `qemu-kvm`) et `qemu-system-aarch64`
-- `mkisofs` ou `genisoimage` (sur Fedora : `sudo dnf install genisoimage`)
-- `podman` ou `docker` (pour le build ARM via Distrobox)
+Tout est automatisé via un script qui détecte votre distribution et installe les paquets nécessaires :
+
+```bash
+just setup          # Installe tout (QEMU, firmware, toolchains, Rust targets)
+just setup-check    # Vérifie que tout est en place (sans rien installer)
+```
+
+### Détail de ce qui est installé
+
+Le script [`scripts/setup-dev-env.sh`](scripts/setup-dev-env.sh) installe :
+
+| Catégorie | Debian/Ubuntu | Fedora/Bazzite | Arch |
+|:---|:---|:---|:---|
+| **QEMU x86** | `qemu-system-x86` | `qemu-system-x86-core` | `qemu-system-x86` |
+| **QEMU ARM** | `qemu-system-arm` | `qemu-system-aarch64-core` | `qemu-system-aarch64` |
+| **Images QEMU** | `qemu-utils` | `qemu-img` | `qemu-img` |
+| **ISO Cloud-Init** | `genisoimage` | `genisoimage` | `cdrtools` |
+| **EFI ARM64** | `qemu-efi-aarch64` | `edk2-aarch64` | `edk2-aarch64` |
+| **Cross-compile** | `gcc-aarch64-linux-gnu` | `gcc-aarch64-linux-gnu` | `aarch64-linux-gnu-gcc` |
+| **Static linking** | `musl-tools` | `musl-gcc` | `musl` |
+
+**Rust targets** ajoutés automatiquement :
+- `x86_64-unknown-linux-musl` (build statique x86)
+- `aarch64-unknown-linux-musl` (build statique ARM64)
+
+### Installation manuelle (si nécessaire)
+
+Si vous êtes sur une distribution non supportée par le script, voici les commandes équivalentes :
+
+```bash
+# Debian / Ubuntu
+sudo apt-get update
+sudo apt-get install -y \
+    qemu-system-x86 qemu-system-arm qemu-utils \
+    genisoimage qemu-efi-aarch64 \
+    musl-tools gcc-aarch64-linux-gnu
+
+# Fedora / Bazzite
+sudo dnf install -y \
+    qemu-system-x86-core qemu-system-aarch64-core qemu-img \
+    genisoimage edk2-aarch64 \
+    musl-gcc gcc-aarch64-linux-gnu
+
+# Arch Linux
+sudo pacman -S --noconfirm \
+    qemu-system-x86 qemu-system-aarch64 qemu-img \
+    cdrtools edk2-aarch64 \
+    musl aarch64-linux-gnu-gcc
+
+# Rust targets (toutes distros)
+rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
+```
 
 ## 2. Architecture des Cibles
 
-| OS | Port SSH | Architecture | Commande de Boot |
-| :--- | :--- | :--- | :--- |
-| **Debian** | 22221 | x86_64 | `just boot-debian` |
-| **Arch** | 22222 | x86_64 | `just boot-arch` |
-| **Raspbian** | 22223 | ARM64 | `just boot-raspbian` |
+Le banc de test simule 3 distributions via des Cloud Images officielles, bootées en headless avec QEMU :
 
-## 3. Provisionnement Automatique
+| OS | Architecture | Port SSH | Image source | Commande |
+|:---|:---|:---|:---|:---|
+| **Debian 12** | x86_64 | 22221 | [debian-12-genericcloud-amd64](https://cloud.debian.org/images/cloud/bookworm/latest/) | `just boot-debian` |
+| **Arch Linux** | x86_64 | 22222 | [Arch-Linux-x86_64-cloudimg](https://geo.mirror.pkgbuild.com/images/latest/) | `just boot-arch` |
+| **Raspbian** | ARM64 | 22223 | [debian-12-genericcloud-arm64](https://cloud.debian.org/images/cloud/bookworm/latest/) | `just boot-raspbian` |
 
-La recette correspondante télécharge les versions officielles Cloud, génère une clé SSH dédiée `e2e_key`, et package le "Seed" (config Cloud-Init) :
+> **Note** : Raspbian utilise une Cloud Image Debian ARM64 émulée via QEMU TCG (pas de KVM). Le boot est sensiblement plus lent (~60-70s vs ~10-15s).
 
-```bash
-just provision-vms
-```
-*(Ceci est fonctionnel pour toutes les cibles. Pour ARM64, cela prépare aussi le firmware EFI).*
+## 3. Provisionnement (téléchargement & préparation)
 
-## 4. Démarrage (Headless)
-
-Toutes les VMs démarrent en mode **Headless** (sans fenêtre graphique) via le moteur de virtualisation correspondant :
+Le provisionnement télécharge les images Cloud officielles, crée un overlay copy-on-write, génère une clé SSH dédiée et package le seed Cloud-Init :
 
 ```bash
-just boot-debian   # Boot via KVM
-just boot-raspbian # Boot via TCG (ARM64 Emulation - Lent)
+just provision-vms            # Prépare les 3 distros
+just provision-debian         # Prépare uniquement Debian
+just provision-arch           # Prépare uniquement Arch
+just provision-raspbian       # Prépare uniquement Raspbian (+ firmware EFI)
 ```
-Cela lancera l'instance en arrière-plan (`-daemonize`). L'image `cloud-init` configurera le réseau et injectera `genesis / e2e_key` automatiquement durant son boot.
+
+**Ce qui se passe en détail** (orchestré par [`scripts/provision-vm.sh`](scripts/provision-vm.sh)) :
+
+1. **Téléchargement** : l'image `.qcow2` officielle est téléchargée dans `tests/e2e/` (~500 MB par image).
+2. **Overlay** : un fichier `*-test.qcow2` est créé par-dessus (copy-on-write). L'image de base n'est jamais modifiée.
+3. **Clé SSH** : une paire `e2e_key` (ed25519) est générée pour l'accès sans mot de passe.
+4. **Cloud-Init** : le fichier `tests/e2e/cloud-init/user-data` est packagé en ISO (`seed.iso`), injectant l'utilisateur `genesis` + la clé SSH.
+5. **ARM64 uniquement** : le firmware EFI AAVMF est pré-padded à 64 MB (requis par QEMU `virt` machine).
+
+> Les images téléchargées sont cachées dans `tests/e2e/*.qcow2` (dans le `.gitignore`). Relancer `provision-*` est idempotent — il ne re-télécharge pas si l'image existe déjà.
+
+## 4. Démarrage des VMs (Headless)
+
+Toutes les VMs démarrent en arrière-plan (`-daemonize`), sans fenêtre graphique :
+
+```bash
+just boot-debian    # x86_64, port 22221
+just boot-arch      # x86_64, port 22222
+just boot-raspbian  # ARM64 (émulation TCG), port 22223
+```
+
+Cloud-Init configure automatiquement durant le boot :
+- Utilisateur `genesis` avec sudo sans mot de passe
+- Clé SSH injectée depuis `e2e_key.pub`
+- Réseau via QEMU user-mode networking (port forwarding SSH)
+
+Pour vérifier que la VM est prête :
+```bash
+just wait-ssh 22221    # Attend que SSH réponde (polling, timeout 10 min)
+```
+
+Pour arrêter toutes les VMs :
+```bash
+just clean-vms
+```
 
 ## 5. Build & Déploiement
 
-Le déploiement est couplé à la compilation statique (Musl).
+Le déploiement compile en statique (musl) puis pousse le binaire via SCP :
 
-### Cas x86_64 (Debian/Arch)
+### x86_64 (Debian / Arch)
 ```bash
-just deploy-debian   # Compile en local et pousse
+just build                    # Compile x86_64-unknown-linux-musl
+just deploy-debian detect     # Déploie et exécute "detect" sur Debian
+just deploy-arch bootstrap    # Déploie et exécute "bootstrap" sur Arch
 ```
 
-### Cas ARM64 (Raspbian)
-Pour ARM, `genesis-rs` utilise un container **Distrobox** nommé `genesis-lab` qui contient la toolchain de cross-compilation GCC ARM.
+### ARM64 (Raspbian)
 ```bash
-just deploy-raspbian # Compile via Distrobox et pousse
+# Via Distrobox (dev local sur machine x86_64 immutable comme Bazzite)
+just build-arm
+just deploy-raspbian detect
+
+# Nativement (CI ou machine ARM64)
+just build-arm-native
+just deploy-raspbian detect
 ```
 
-## 5. Benchmarking & Profiling ⏱️
+## 6. Benchmarking & Profiling ⏱️
 
-Pour mesurer la performance brute (boot et déploiement) sur un OS spécifique :
+Pour mesurer la performance brute (boot + deploy complet) :
 ```bash
-just benchmark debian
-just benchmark raspbian
+just benchmark debian         # Benchmark Debian
+just benchmark arch           # Benchmark Arch
+just benchmark raspbian       # Benchmark Raspbian (lent: émulation ARM64)
 ```
-Les résultats incluent désormais le **Dashboard Matériel** (CPU, RAM, Disques) généré par l'application en temps réel.
 
-## 6. Pipeline CI/CD (GitHub Actions) 🤖
+Le script [`scripts/benchmark.sh`](scripts/benchmark.sh) mesure :
+- **Boot Time** : du lancement QEMU jusqu'à SSH disponible
+- **Deploy Time** : SCP du binaire + exécution de `bootstrap`
+- **Total E2E** : temps total du cycle
 
-Le projet intègre une configuration **GitHub Actions** (`.github/workflows/ci.yml`) qui s'exécute à chaque push.
-Elle réalise :
-- Le build statique multi-architecture (x86_64 et ARM64).
-- Le boot de 3 instances QEMU en parallèle (Debian, Arch, Raspbian).
-- La validation fonctionnelle via la commande `detect` (inspections système).
-- Le tracking des métriques de performance (**Boot Time**, **Deploy Time**) directement dans les logs de la CI.
+Résultats de référence : voir [`docs/benchmarks/initial_reference.md`](docs/benchmarks/initial_reference.md).
 
-## 7. Validation Locale (CI-Local) 🧪
+## 7. Pipeline CI/CD (GitHub Actions) 🤖
 
-Avant de pusher vos modifications, vous pouvez jouer l'intégralité du pipeline CI sur votre machine :
+La pipeline (`.github/workflows/ci.yml`) s'exécute à chaque push/PR sur `master` :
+
+```
+quality  →  build  →  e2e-test (3 distros en parallèle)
+```
+
+| Étape | Description | Recettes utilisées |
+|:---|:---|:---|
+| **quality** | Formatage, clippy, tests, audit sécurité | `just format-check`, `just lint`, `just test`, `cargo audit` |
+| **build** | Build statique x86_64 + ARM64 | `just build`, `just build-arm-native` |
+| **e2e-test** | Boot QEMU + deploy + detect sur chaque OS | `just ci-test <os> <port> <target>` |
+
+> La CI utilise les **mêmes recettes Justfile** que le développement local. Pas de scripts CI-only.
+
+## 8. Validation Locale (CI-Local) 🧪
+
+Avant de pusher, lancez l'intégralité du pipeline sur votre machine :
 ```bash
 just ci-local
 ```
-Cette commande enchaîne les tests sur Debian, Arch et Raspbian. Elle utilise automatiquement **Distrobox** pour la partie ARM si vous êtes sur Bazzite, garantissant une parité parfaite avec l'infrastructure de production du lab.
 
-## 8. Git Hooks & Qualité de Code (QA) 🏗️
+Cela enchaîne séquentiellement :
+1. Build x86_64 + ARM64
+2. Provisionnement des 3 VMs
+3. Pour chaque OS : boot → wait SSH → deploy detect → clean → métriques
 
-Le dépôt est configuré avec un **hook pre-commit** local (`.git/hooks/pre-commit`).
-Ce hook garantit qu'aucun commit n'est poussé s'il ne respecte pas les critères suivants :
+## 9. Git Hooks & Qualité de Code 🏗️
 
-1. **Formatage** : `cargo fmt --check` (doit être au standard Rust).
-2. **Clippy** : `cargo clippy -- -D warnings` (zéro warning autorisé).
-3. **CI Lint** : `actionlint` (validation des fichiers `.github/workflows`).
+Le pre-commit hook (`just install-hooks`) exécute `just lint` avant chaque commit :
 
-### Installation du Linter CI
-Pour bénéficier de la validation des workflows localement :
+1. **Clippy** : `cargo clippy -- -D warnings` (zéro warning)
+2. **actionlint** : validation des fichiers `.github/workflows/*.yml` (optionnel si non installé)
+3. **check-actions** : vérifie que les GitHub Actions référencées existent (via `gh`)
+
 ```bash
-# Sur Fedora/Bazzite
-go install github.com/rhysd/actionlint/cmd/actionlint@latest
+just lint             # Lancer manuellement
+just format-check     # Vérifier le formatage sans modifier
+just test             # 30 tests (24 unitaires + 5 fonctionnels + 1 doctest)
 ```
 
-### Forcer la vérification
-Vous pouvez lancer manuellement toutes les vérifications de qualité via :
-```bash
-just lint
-```
-Cela lancera `clippy` et `actionlint` de manière séquentielle.
+## 10. Dépannage
 
----
-Consultez le [Dashboard Système](file:///home/latty/Prog/genesis-rs/src/platform/mod.rs) pour voir comment les métadonnées sont extraites.
+### La VM ne boot pas / SSH timeout
+```bash
+just clean-vms           # Tuer les processus QEMU zombies
+just provision-debian    # Re-provisionner (recréer l'overlay)
+just boot-debian         # Relancer
+```
+
+### Images corrompues
+Supprimer les overlays (les images de base sont préservées) :
+```bash
+rm tests/e2e/*-test.qcow2
+just provision-vms       # Recréer les overlays
+```
+
+### Vérifier les prérequis
+```bash
+just setup-check         # Diagnostic complet sans rien installer
+```
