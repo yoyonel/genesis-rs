@@ -194,7 +194,7 @@ benchmark os="debian" target=TARGET:
 	if [ -z "$END_BOOT" ]; then echo "Boot failed"; exit 1; fi; \
 	BOOT_TIME=$((END_BOOT - START_BOOT)); \
 	START_DEPLOY=$(date +%s%3N); \
-	just deploy-{{os}} target=${OS_TARGET}; \
+	just deploy-{{os}} "bootstrap" ${OS_TARGET}; \
 	END_DEPLOY=$(date +%s%3N); \
 	DEPLOY_TIME=$((END_DEPLOY - START_DEPLOY)); \
 	killall qemu-system-x86_64 2>/dev/null || true; \

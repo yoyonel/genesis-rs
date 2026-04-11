@@ -29,7 +29,18 @@ pub trait SystemPlatform {
         println!("OS:         {}", self.display_name());
 
         if let Some(cpu) = sys.cpus().first() {
-            println!("CPU:        {} ({} cores)", cpu.brand(), sys.cpus().len());
+            let brand = cpu.brand();
+            let arch = std::env::consts::ARCH;
+            if brand.is_empty() {
+                println!("CPU:        {} ({} cores)", arch, sys.cpus().len());
+            } else {
+                println!(
+                    "CPU:        {} {} ({} cores)",
+                    arch,
+                    brand,
+                    sys.cpus().len()
+                );
+            }
         }
 
         println!(
