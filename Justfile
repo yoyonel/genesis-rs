@@ -73,11 +73,12 @@ provision-raspbian:
 
 # Boot debian VM
 boot-debian:
-	qemu-system-x86_64 -m 2G -smp 2 -daemonize -enable-kvm -cpu host -nographic \
+	qemu-system-x86_64 -m 2G -smp 2 -daemonize -enable-kvm -cpu host -display none \
 		-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22221-:22 \
-		-drive file=tests/e2e/debian-test.qcow2,format=qcow2,if=virtio \
-		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio
-	@echo "Debian booted on background with KVM acceleration. Wait ~30-40s before deploy."
+		-drive file=tests/e2e/debian-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
+		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio \
+		-device virtio-rng-pci
+	@echo "Debian booted (Headless, KVM, Port 22221)."
 
 # Deploy binary to Debian VM
 deploy-debian target=TARGET:
@@ -86,11 +87,12 @@ deploy-debian target=TARGET:
 
 # Boot Arch Linux VM
 boot-arch:
-	qemu-system-x86_64 -m 2G -smp 2 -daemonize -enable-kvm -cpu host -nographic \
+	qemu-system-x86_64 -m 2G -smp 2 -daemonize -enable-kvm -cpu host -display none \
 		-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22222-:22 \
-		-drive file=tests/e2e/arch-test.qcow2,format=qcow2,if=virtio \
-		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio
-	@echo "Arch Linux booted on background with KVM acceleration (Port 22222). Wait ~30s."
+		-drive file=tests/e2e/arch-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
+		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio \
+		-device virtio-rng-pci
+	@echo "Arch Linux booted (Headless, KVM, Port 22222)."
 
 # Deploy binary to Arch Linux VM
 deploy-arch target=TARGET:
@@ -99,13 +101,14 @@ deploy-arch target=TARGET:
 
 # Boot Raspbian VM (ARM64)
 boot-raspbian:
-	qemu-system-aarch64 -m 2G -smp 2 -daemonize -M virt -cpu cortex-a72 -nographic \
+	qemu-system-aarch64 -m 2G -smp 2 -daemonize -M virt -cpu max -display none \
 		-drive if=pflash,format=raw,file=tests/e2e/EFI_CODE.fd,readonly=on \
 		-drive if=pflash,format=raw,file=tests/e2e/EFI_VARS.fd \
 		-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22223-:22 \
-		-drive file=tests/e2e/raspbian-test.qcow2,format=qcow2,if=virtio \
-		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio
-	@echo "Raspbian (ARM64) booted on background (Port 22223). THIS WILL BE SLOW (TCG)."
+		-drive file=tests/e2e/raspbian-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
+		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio \
+		-device virtio-rng-pci
+	@echo "Raspbian (ARM64) booted (Headless, TCG, Port 22223). This is optimized ARM emulation."
 
 # Deploy binary to Raspbian VM (ARM64)
 deploy-raspbian target=ARM_TARGET: build-arm
