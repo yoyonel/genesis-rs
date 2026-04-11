@@ -7,8 +7,41 @@ on:
     branches: [ master ]
 
 jobs:
+  quality:
+    name: Quality Gate (fmt, lint, test, audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install Just
+        uses: extractions/setup-just@v2
+
+      - name: Install actionlint
+        run: |
+          curl -sL "https://github.com/rhysd/actionlint/releases/latest/download/actionlint_$(curl -sL https://api.github.com/repos/rhysd/actionlint/releases/latest | jq -r .tag_name | sed 's/^v//')_linux_amd64.tar.gz" | sudo tar xz -C /usr/local/bin actionlint
+
+      - name: Check formatting
+        run: just format-check
+
+      - name: Lint (Rust + CI + Actions)
+        run: just lint
+
+      - name: Run tests
+        run: just test
+
+      - name: Security audit
+        run: |
+          cargo install cargo-audit --locked || true
+          cargo audit
+
   build:
     name: Build Multi-Arch binaries
+    needs: quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
