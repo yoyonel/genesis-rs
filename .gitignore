@@ -1,0 +1,6 @@
+/target
+/tests/e2e/*.qcow2
+/tests/e2e/*.iso
+/tests/e2e/e2e_key
+/tests/e2e/e2e_key.pub
+/tests/e2e/qemu.log
