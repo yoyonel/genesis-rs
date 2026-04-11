@@ -19,6 +19,10 @@ build:
 build-arm:
 	distrobox enter genesis-lab -- cargo build --release --target {{ARM_TARGET}}
 
+# Build for ARM64 natively (for CI)
+build-arm-native:
+	cargo build --release --target {{ARM_TARGET}}
+
 # Lint the code and deny warnings
 lint:
     cargo clippy -- -D warnings
@@ -80,10 +84,10 @@ boot-debian:
 		-device virtio-rng-pci
 	@echo "Debian booted (Headless, KVM, Port 22221)."
 
-# Deploy binary to Debian VM
-deploy-debian target=TARGET:
+# Deploy and run a command on Debian VM
+deploy-debian cmd="bootstrap" target=TARGET:
 	scp -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -P 22221 target/{{target}}/release/genesis-rs genesis@localhost:/tmp/genesis-rs
-	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22221 genesis@localhost "/tmp/genesis-rs bootstrap"
+	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22221 genesis@localhost "/tmp/genesis-rs {{cmd}}"
 
 # Boot Arch Linux VM
 boot-arch:
@@ -94,10 +98,10 @@ boot-arch:
 		-device virtio-rng-pci
 	@echo "Arch Linux booted (Headless, KVM, Port 22222)."
 
-# Deploy binary to Arch Linux VM
-deploy-arch target=TARGET:
+# Deploy and run a command on Arch Linux VM
+deploy-arch cmd="bootstrap" target=TARGET:
 	scp -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -P 22222 target/{{target}}/release/genesis-rs genesis@localhost:/tmp/genesis-rs
-	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22222 genesis@localhost "/tmp/genesis-rs bootstrap"
+	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22222 genesis@localhost "/tmp/genesis-rs {{cmd}}"
 
 # Boot Raspbian VM (ARM64)
 boot-raspbian:
@@ -110,10 +114,30 @@ boot-raspbian:
 		-device virtio-rng-pci
 	@echo "Raspbian (ARM64) booted (Headless, TCG, Port 22223). This is optimized ARM emulation."
 
-# Deploy binary to Raspbian VM (ARM64)
-deploy-raspbian target=ARM_TARGET: build-arm
+# Deploy and run a command on Raspbian VM (ARM64)
+deploy-raspbian cmd="bootstrap" target=ARM_TARGET:
 	scp -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -P 22223 target/{{target}}/release/genesis-rs genesis@localhost:/tmp/genesis-rs
-	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22223 genesis@localhost "/tmp/genesis-rs bootstrap"
+	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22223 genesis@localhost "/tmp/genesis-rs {{cmd}}"
+
+# Wait for SSH to be ready on a specific port
+wait-ssh PORT:
+	@echo "Waiting for SSH on port {{PORT}}..."
+	@for i in $(seq 1 120); do \
+		if ssh -i tests/e2e/e2e_key -p {{PORT}} genesis@localhost -o StrictHostKeyChecking=no -o ConnectTimeout=1 echo "up" > /dev/null 2>&1; then \
+			echo "SSH is ready!"; \
+			break; \
+		fi; \
+		echo -n "."; \
+		sleep 2; \
+	done
+
+# Full CI command (Detect only for simple E2E verification)
+ci-test os PORT target:
+	just build target={{target}}
+	just boot-{{os}}
+	just wait-ssh {{PORT}}
+	just deploy-{{os}} cmd="detect" target={{target}}
+	just clean-vms
 
 # Run the E2E benchmark and output performance metrics
 benchmark os="debian" target=TARGET:

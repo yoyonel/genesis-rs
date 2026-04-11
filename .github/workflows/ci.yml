@@ -1,0 +1,86 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Build Multi-Arch binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl, aarch64-unknown-linux-musl
+          
+      - name: Install Cross-Linker
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu musl-tools
+        
+      - name: Install Just
+        uses: EXTRA-BIT/setup-just@v1
+
+      - name: Build x86_64
+        run: just build
+        
+      - name: Build ARM64
+        run: just build-arm-native
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: genesis-binaries
+          path: target/**/release/genesis-rs
+
+  e2e-test:
+    name: E2E Verify - ${{ matrix.os }}
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: debian
+            port: 22221
+            target: x86_64-unknown-linux-musl
+          - os: arch
+            port: 22222
+            target: x86_64-unknown-linux-musl
+          - os: raspbian
+            port: 22223
+            target: aarch64-unknown-linux-musl
+            
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: genesis-binaries
+          path: target
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-system-arm genisoimage qemu-utils
+          
+      - name: Install Just
+        uses: EXTRA-BIT/setup-just@v1
+
+      - name: Cache Cloud Images
+        id: cache-images
+        uses: actions/cache@v4
+        with:
+          path: tests/e2e/*.qcow2
+          key: cloud-images-${{ matrix.os }}-${{ hashFiles('Justfile') }}
+
+      - name: Provision VM
+        run: just provision-${{ matrix.os }}
+
+      - name: Run E2E Verification (System Info)
+        run: just ci-test ${{ matrix.os }} ${{ matrix.port }} ${{ matrix.target }}
+        timeout-minutes: 15
