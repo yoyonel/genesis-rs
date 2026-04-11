@@ -77,7 +77,7 @@ provision-setup:
 		ssh-keygen -t ed25519 -N "" -f tests/e2e/e2e_key -C "e2e@genesis" > /dev/null; \
 	fi
 	@PUB_KEY=$(cat tests/e2e/e2e_key.pub); \
-	sed -i "s|__GENESIS_SSH_KEY__|${PUB_KEY}|" tests/e2e/cloud-init/user-data
+	sed -i "s|__GENESIS_SSH_KEY__|${PUB_KEY}|" tests/e2e/cloud-init/user-data 2>/dev/null || true
 
 # Provision all Cloud images
 provision-vms: provision-setup provision-debian provision-arch provision-raspbian
@@ -85,22 +85,31 @@ provision-vms: provision-setup provision-debian provision-arch provision-raspbia
 
 provision-debian: provision-setup
 	@echo "Provisioning Debian Cloud VM..."
-	mkdir -p tests/e2e/cloud-init
-	wget -q -nc -c -O tests/e2e/debian.qcow2 https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
+	@mkdir -p tests/e2e/cloud-init
+	@if [ ! -f tests/e2e/debian.qcow2 ]; then \
+		echo "Downloading Debian image..."; \
+		wget -q -c -O tests/e2e/debian.qcow2 https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2; \
+	fi
 	qemu-img create -f qcow2 -F qcow2 -b debian.qcow2 tests/e2e/debian-test.qcow2 || true
 	mkisofs -output tests/e2e/cloud-init/seed.iso -volid cidata -joliet -rock tests/e2e/cloud-init/user-data tests/e2e/cloud-init/meta-data
 
 provision-arch: provision-setup
 	@echo "Provisioning Arch Linux Cloud VM..."
-	mkdir -p tests/e2e/cloud-init
-	wget -q -nc -c -O tests/e2e/arch.qcow2 https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
+	@mkdir -p tests/e2e/cloud-init
+	@if [ ! -f tests/e2e/arch.qcow2 ]; then \
+		echo "Downloading Arch image..."; \
+		wget -q -c -O tests/e2e/arch.qcow2 https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2; \
+	fi
 	qemu-img create -f qcow2 -F qcow2 -b arch.qcow2 tests/e2e/arch-test.qcow2 || true
 	mkisofs -output tests/e2e/cloud-init/seed.iso -volid cidata -joliet -rock tests/e2e/cloud-init/user-data tests/e2e/cloud-init/meta-data
 
 provision-raspbian: provision-setup
 	@echo "Provisioning Raspbian-like (Debian ARM64) Cloud VM..."
-	mkdir -p tests/e2e/cloud-init
-	wget -q -nc -c -O tests/e2e/raspbian.qcow2 https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-arm64.qcow2
+	@mkdir -p tests/e2e/cloud-init
+	@if [ ! -f tests/e2e/raspbian.qcow2 ]; then \
+		echo "Downloading Raspbian image..."; \
+		wget -q -c -O tests/e2e/raspbian.qcow2 https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-arm64.qcow2; \
+	fi
 	qemu-img create -f qcow2 -F qcow2 -b raspbian.qcow2 tests/e2e/raspbian-test.qcow2 || true
 	mkisofs -output tests/e2e/cloud-init/seed.iso -volid cidata -joliet -rock tests/e2e/cloud-init/user-data tests/e2e/cloud-init/meta-data
 	# Prepare padded EFI firmware (64MB required by QEMU virt machine)
