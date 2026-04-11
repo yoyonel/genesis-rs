@@ -76,7 +76,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: tests/e2e/*.qcow2
-          key: cloud-images-${{ matrix.os }}-${{ hashFiles('Justfile') }}
+          key: cloud-images-v2-${{ matrix.os }}
 
       - name: Provision VM
         run: just provision-${{ matrix.os }}

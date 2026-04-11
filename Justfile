@@ -70,13 +70,18 @@ deploy-host target=TARGET:
     scp -P {{VM_PORT}} target/{{target}}/release/genesis-rs {{VM_USER}}@{{VM_HOST}}:/tmp/genesis-rs
     @echo "Binary deployed to /tmp/genesis-rs on VM"
 
-# --- AUTOMATED E2E VM TESTING (QEMU Cloud-Image) ---
+# Setup tests requirements (SSH keys)
+provision-setup:
+	@mkdir -p tests/e2e/cloud-init
+	@if [ ! -f tests/e2e/e2e_key ]; then \
+		ssh-keygen -t ed25519 -N "" -f tests/e2e/e2e_key -C "e2e@genesis" > /dev/null; \
+	fi
 
-# Provision tests requirements
-provision-vms: provision-debian provision-arch provision-raspbian
+# Provision all Cloud images
+provision-vms: provision-setup provision-debian provision-arch provision-raspbian
 	@echo "All VMs provisioned successfully."
 
-provision-debian:
+provision-debian: provision-setup
 	@echo "Provisioning Debian Cloud VM..."
 	mkdir -p tests/e2e/cloud-init
 	wget -q -nc -c -O tests/e2e/debian.qcow2 https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
@@ -138,13 +143,14 @@ deploy-arch cmd="bootstrap" target=TARGET:
 # Boot Raspbian VM (ARM64)
 boot-raspbian:
 	qemu-system-aarch64 -m 2G -smp 2 -daemonize -M virt -cpu max -display none \
+		-accel tcg,thread=multi \
 		-drive if=pflash,format=raw,file=tests/e2e/EFI_CODE.fd,readonly=on \
 		-drive if=pflash,format=raw,file=tests/e2e/EFI_VARS.fd \
 		-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22223-:22 \
 		-drive file=tests/e2e/raspbian-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
 		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio \
 		-device virtio-rng-pci
-	@echo "Raspbian (ARM64) booted (Headless, TCG, Port 22223). This is optimized ARM emulation."
+	@echo "Raspbian (ARM64) booted (Headless, MTTCG, Port 22223)."
 
 # Deploy and run a command on Raspbian VM (ARM64)
 deploy-raspbian cmd="bootstrap" target=ARM_TARGET:
@@ -163,23 +169,23 @@ wait-ssh PORT:
 		sleep 2; \
 	done
 
-# Full CI command (Timed benchmark + System Detect)
+# Run a full CI test cycle for a specific OS (Boot -> Deploy -> Detect -> Clean)
 ci-test os PORT target build="true":
-	if [ "{{build}}" = "true" ]; then just build {{target}}; fi
-	START_BOOT=$(date +%s%3N); \
-	just boot-{{os}} > /dev/null 2>&1; \
-	just wait-ssh {{PORT}}; \
-	END_BOOT=$(date +%s%3N); \
-	BOOT_TIME=$((END_BOOT - START_BOOT)); \
-	START_DEPLOY=$(date +%s%3N); \
-	just deploy-{{os}} "detect" {{target}}; \
-	END_DEPLOY=$(date +%s%3N); \
-	DEPLOY_TIME=$((END_DEPLOY - START_DEPLOY)); \
-	just clean-vms; \
-	echo ""; \
-	echo "--- CI PERFORMANCE METRICS ({{os}}) ---"; \
-	echo "Boot Time:   ${BOOT_TIME}ms"; \
-	echo "Deploy Time: ${DEPLOY_TIME}ms"; \
+	if [ "{{build}}" = "true" ]; then just build {{target}}; fi && \
+	START_BOOT=$(date +%s%3N) && \
+	just boot-{{os}} > /dev/null 2>&1 && \
+	just wait-ssh {{PORT}} && \
+	END_BOOT=$(date +%s%3N) && \
+	BOOT_TIME=$((END_BOOT - START_BOOT)) && \
+	START_DEPLOY=$(date +%s%3N) && \
+	just deploy-{{os}} "detect" {{target}} && \
+	END_DEPLOY=$(date +%s%3N) && \
+	DEPLOY_TIME=$((END_DEPLOY - START_DEPLOY)) && \
+	just clean-vms && \
+	echo "" && \
+	echo "--- CI PERFORMANCE METRICS ({{os}}) ---" && \
+	echo "Boot Time:   ${BOOT_TIME}ms" && \
+	echo "Deploy Time: ${DEPLOY_TIME}ms" && \
 	echo "Total E2E:   $((BOOT_TIME + DEPLOY_TIME))ms"
 
 # Run all CI tests locally before pushing
@@ -192,14 +198,14 @@ ci-local: build build-arm provision-vms
 
 # Run the E2E benchmark and output performance metrics
 benchmark os="debian" target=TARGET:
-	@OS_PORT=$(case "{{os}}" in "debian") echo "22221";; "arch") echo "22222";; "raspbian") echo "22223";; *) echo "0";; esac); \
-	OS_TARGET=$(if [ "{{os}}" = "raspbian" ]; then echo "{{ARM_TARGET}}"; else echo "{{target}}"; fi); \
-	if [ "$OS_PORT" = "0" ]; then echo "Unsupported OS: {{os}}"; exit 1; fi; \
-	killall qemu-system-x86_64 qemu-system-aarch64 2>/dev/null || true; \
-	START_BOOT=$(date +%s%3N); \
-	just boot-{{os}} > /dev/null 2>&1; \
-	echo -n "Waiting for SSH on port ${OS_PORT}..."; \
-	END_BOOT=""; \
+	@OS_PORT=$(case "{{os}}" in "debian") echo "22221";; "arch") echo "22222";; "raspbian") echo "22223";; *) echo "0";; esac) && \
+	OS_TARGET=$(if [ "{{os}}" = "raspbian" ]; then echo "{{ARM_TARGET}}"; else echo "{{target}}"; fi) && \
+	if [ "$OS_PORT" = "0" ]; then echo "Unsupported OS: {{os}}"; exit 1; fi && \
+	killall qemu-system-x86_64 qemu-system-aarch64 2>/dev/null || true && \
+	START_BOOT=$(date +%s%3N) && \
+	just boot-{{os}} > /dev/null 2>&1 && \
+	echo -n "Waiting for SSH on port ${OS_PORT}..." && \
+	END_BOOT="" && \
 	for i in $(seq 1 120); do \
 		if ssh -i tests/e2e/e2e_key -p ${OS_PORT} genesis@localhost -o StrictHostKeyChecking=no -o ConnectTimeout=1 echo "up" > /dev/null 2>&1; then \
 			END_BOOT=$(date +%s%3N); \
@@ -208,17 +214,17 @@ benchmark os="debian" target=TARGET:
 		fi; \
 		echo -n "."; \
 		sleep 2; \
-	done; \
-	if [ -z "$END_BOOT" ]; then echo "Boot failed"; exit 1; fi; \
-	BOOT_TIME=$((END_BOOT - START_BOOT)); \
-	START_DEPLOY=$(date +%s%3N); \
-	just deploy-{{os}} "bootstrap" ${OS_TARGET}; \
-	END_DEPLOY=$(date +%s%3N); \
-	DEPLOY_TIME=$((END_DEPLOY - START_DEPLOY)); \
-	killall qemu-system-x86_64 2>/dev/null || true; \
-	echo "--- BENCHMARK RESULTS ({{os}}) ---"; \
-	echo "Boot Time:   ${BOOT_TIME}ms"; \
-	echo "Deploy Time: ${DEPLOY_TIME}ms"; \
+	done && \
+	if [ -z "$END_BOOT" ]; then echo "Boot failed"; exit 1; fi && \
+	BOOT_TIME=$((END_BOOT - START_BOOT)) && \
+	START_DEPLOY=$(date +%s%3N) && \
+	just deploy-{{os}} "bootstrap" ${OS_TARGET} && \
+	END_DEPLOY=$(date +%s%3N) && \
+	DEPLOY_TIME=$((END_DEPLOY - START_DEPLOY)) && \
+	killall qemu-system-x86_64 2>/dev/null || true && \
+	echo "--- BENCHMARK RESULTS ({{os}}) ---" && \
+	echo "Boot Time:   ${BOOT_TIME}ms" && \
+	echo "Deploy Time: ${DEPLOY_TIME}ms" && \
 	echo "Total E2E:   $((BOOT_TIME + DEPLOY_TIME))ms"
 
 
