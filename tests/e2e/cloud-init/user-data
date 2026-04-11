@@ -1,0 +1,16 @@
+#cloud-config
+users:
+  - name: genesis
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh-authorized-keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIENglCUjRo5Lco6grpwvLtl+9cYxXRt1rKyvtaQT6pGq genesis-e2e
+ssh_pwauth: true
+disable_root: true
+chpasswd:
+  list: |
+    genesis:genesis
+  expire: false
+runcmd:
+  - echo "Cloud-init finished."
