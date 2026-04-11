@@ -152,8 +152,8 @@ wait-ssh PORT:
 	done
 
 # Full CI command (Timed benchmark + System Detect)
-ci-test os PORT target:
-	just build {{target}}
+ci-test os PORT target build="true":
+	if [ "{{build}}" = "true" ]; then just build {{target}}; fi
 	START_BOOT=$(date +%s%3N); \
 	just boot-{{os}} > /dev/null 2>&1; \
 	just wait-ssh {{PORT}}; \

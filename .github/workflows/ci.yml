@@ -82,5 +82,5 @@ jobs:
         run: just provision-${{ matrix.os }}
 
       - name: Run E2E Verification (System Info)
-        run: just ci-test ${{ matrix.os }} ${{ matrix.port }} ${{ matrix.target }}
+        run: just ci-test ${{ matrix.os }} ${{ matrix.port }} ${{ matrix.target }} "false"
         timeout-minutes: 15
