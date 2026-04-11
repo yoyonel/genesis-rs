@@ -42,6 +42,13 @@ format:
 format-check:
     cargo fmt --check
 
+# Install Git hooks
+install-hooks:
+	cp .git/hooks/pre-commit.sample .git/hooks/pre-commit || true # safety if sample exists
+	@echo "Installing pre-commit hook..."
+	@printf '#!/bin/bash\n# genesis-rs pre-commit hook\nset -e\njust lint\n' > .git/hooks/pre-commit
+	chmod +x .git/hooks/pre-commit
+
 # Run unit tests
 test:
     cargo test

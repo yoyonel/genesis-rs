@@ -77,5 +77,28 @@ just ci-local
 ```
 Cette commande enchaîne les tests sur Debian, Arch et Raspbian. Elle utilise automatiquement **Distrobox** pour la partie ARM si vous êtes sur Bazzite, garantissant une parité parfaite avec l'infrastructure de production du lab.
 
+## 8. Git Hooks & Qualité de Code (QA) 🏗️
+
+Le dépôt est configuré avec un **hook pre-commit** local (`.git/hooks/pre-commit`).
+Ce hook garantit qu'aucun commit n'est poussé s'il ne respecte pas les critères suivants :
+
+1. **Formatage** : `cargo fmt --check` (doit être au standard Rust).
+2. **Clippy** : `cargo clippy -- -D warnings` (zéro warning autorisé).
+3. **CI Lint** : `actionlint` (validation des fichiers `.github/workflows`).
+
+### Installation du Linter CI
+Pour bénéficier de la validation des workflows localement :
+```bash
+# Sur Fedora/Bazzite
+go install github.com/rhysd/actionlint/cmd/actionlint@latest
+```
+
+### Forcer la vérification
+Vous pouvez lancer manuellement toutes les vérifications de qualité via :
+```bash
+just lint
+```
+Cela lancera `clippy` et `actionlint` de manière séquentielle.
+
 ---
 Consultez le [Dashboard Système](file:///home/latty/Prog/genesis-rs/src/platform/mod.rs) pour voir comment les métadonnées sont extraites.

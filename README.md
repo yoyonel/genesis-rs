@@ -6,6 +6,7 @@
 
 - **📦 Gestion de Paquets Agnostique** : Interface unifiée pour `apt-get` (Debian/Raspbian) et `pacman` (Arch Linux).
 - **🖥️ Dashboard Matériel** : Auto-inspection détaillée au lancement (CPU, RAM, Disques, OS Version) via `sysinfo`.
+- **🛡️ Qualité de Code Automatisée** : Pre-commit hooks intégrés pour garantir le formatage (`rustfmt`), le linting (`clippy`) et la validation CI (`actionlint`).
 - **🏗️ Build Multi-Arch** : Support natif pour x86_64 et ARM64 (via Distrobox pour les environnements immuables comme Bazzite).
 - **🧪 E2E Testing Industriel** : Pipeline complet de test sur QEMU (Headless) avec injection Cloud-Init.
 - **⏱️ Benchmarking & Profiling** : Mesure précise des temps de boot et de déploiement, intégrée directement dans la CI/CD.
@@ -47,6 +48,16 @@ cargo run -- detect
 
 # Lancer le pipeline CI complet en local (Debian + Arch + Raspbian)
 just ci-local
+
+# Vérifier la qualité du code (Linting)
+just lint
 ```
 
-Consultez le [VM_SETUP.md](file:///home/latty/Prog/genesis-rs/VM_SETUP.md) pour plus de détails sur l'environnement de test et le benchmarking.
+## 🛡️ Standards de Développement
+
+Pour maintenir une base de code saine, le projet impose :
+1. **Formatage** : `cargo fmt` est obligatoire.
+2. **Linting** : `clippy` ne doit retourner aucune erreur ou warning.
+3. **CI Validation** : Les fichiers `.yml` de GitHub Actions sont validés par `actionlint`.
+
+Un **hook Git pre-commit** est automatiquement utilisé pour bloquer tout commit ne respectant pas ces standards.
