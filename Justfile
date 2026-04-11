@@ -15,6 +15,14 @@ RASPBIAN_URL  := "https://cloud.debian.org/images/cloud/bookworm/latest/debian-1
 
 # ─── Quality ──────────────────────────────────────────────────────────────────
 
+# Setup development environment (install QEMU, genisoimage, EFI firmware, Rust targets)
+setup:
+    scripts/setup-dev-env.sh
+
+# Check prerequisites without installing
+setup-check:
+    scripts/setup-dev-env.sh --check-only
+
 # Check the code compiles
 check:
     cargo check
