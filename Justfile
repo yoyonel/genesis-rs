@@ -88,14 +88,14 @@ provision-debian: provision-setup
 	qemu-img create -f qcow2 -F qcow2 -b debian.qcow2 tests/e2e/debian-test.qcow2 || true
 	mkisofs -output tests/e2e/cloud-init/seed.iso -volid cidata -joliet -rock tests/e2e/cloud-init/user-data tests/e2e/cloud-init/meta-data
 
-provision-arch:
+provision-arch: provision-setup
 	@echo "Provisioning Arch Linux Cloud VM..."
 	mkdir -p tests/e2e/cloud-init
 	wget -q -nc -c -O tests/e2e/arch.qcow2 https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2
 	qemu-img create -f qcow2 -F qcow2 -b arch.qcow2 tests/e2e/arch-test.qcow2 || true
 	mkisofs -output tests/e2e/cloud-init/seed.iso -volid cidata -joliet -rock tests/e2e/cloud-init/user-data tests/e2e/cloud-init/meta-data
 
-provision-raspbian:
+provision-raspbian: provision-setup
 	@echo "Provisioning Raspbian-like (Debian ARM64) Cloud VM..."
 	mkdir -p tests/e2e/cloud-init
 	wget -q -nc -c -O tests/e2e/raspbian.qcow2 https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-arm64.qcow2
@@ -114,12 +114,12 @@ provision-raspbian:
 
 # Boot debian VM
 boot-debian:
-	qemu-system-x86_64 -m 2G -smp 2 -daemonize -enable-kvm -cpu host -display none \
+	qemu-system-x86_64 -m 2G -smp 2 -daemonize -cpu max -display none \
 		-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22221-:22 \
 		-drive file=tests/e2e/debian-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
 		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio \
 		-device virtio-rng-pci
-	@echo "Debian booted (Headless, KVM, Port 22221)."
+	@echo "Debian booted (Headless, TCG, Port 22221)."
 
 # Deploy and run a command on Debian VM
 deploy-debian cmd="bootstrap" target=TARGET:
@@ -128,12 +128,12 @@ deploy-debian cmd="bootstrap" target=TARGET:
 
 # Boot Arch Linux VM
 boot-arch:
-	qemu-system-x86_64 -m 2G -smp 2 -daemonize -enable-kvm -cpu host -display none \
+	qemu-system-x86_64 -m 2G -smp 2 -daemonize -cpu max -display none \
 		-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22222-:22 \
 		-drive file=tests/e2e/arch-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
 		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio \
 		-device virtio-rng-pci
-	@echo "Arch Linux booted (Headless, KVM, Port 22222)."
+	@echo "Arch Linux booted (Headless, TCG, Port 22222)."
 
 # Deploy and run a command on Arch Linux VM
 deploy-arch cmd="bootstrap" target=TARGET:
@@ -173,7 +173,7 @@ wait-ssh PORT:
 ci-test os PORT target build="true":
 	if [ "{{build}}" = "true" ]; then just build {{target}}; fi && \
 	START_BOOT=$(date +%s%3N) && \
-	just boot-{{os}} > /dev/null 2>&1 && \
+	just boot-{{os}} && \
 	just wait-ssh {{PORT}} && \
 	END_BOOT=$(date +%s%3N) && \
 	BOOT_TIME=$((END_BOOT - START_BOOT)) && \
@@ -203,7 +203,7 @@ benchmark os="debian" target=TARGET:
 	if [ "$OS_PORT" = "0" ]; then echo "Unsupported OS: {{os}}"; exit 1; fi && \
 	killall qemu-system-x86_64 qemu-system-aarch64 2>/dev/null || true && \
 	START_BOOT=$(date +%s%3N) && \
-	just boot-{{os}} > /dev/null 2>&1 && \
+	just boot-{{os}} && \
 	echo -n "Waiting for SSH on port ${OS_PORT}..." && \
 	END_BOOT="" && \
 	for i in $(seq 1 120); do \
