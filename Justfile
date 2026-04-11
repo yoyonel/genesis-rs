@@ -120,7 +120,7 @@ boot-debian:
 		-accel tcg,thread=multi \
 		-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22221-:22 \
 		-drive file=tests/e2e/debian-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
-		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio \
+		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio,readonly=on \
 		-device virtio-rng-pci
 	@echo "Debian booted (Headless, TCG Multi, Port 22221)."
 
@@ -135,7 +135,7 @@ boot-arch:
 		-accel tcg,thread=multi \
 		-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22222-:22 \
 		-drive file=tests/e2e/arch-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
-		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio \
+		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio,readonly=on \
 		-device virtio-rng-pci
 	@echo "Arch Linux booted (Headless, TCG Multi, Port 22222)."
 
@@ -152,7 +152,7 @@ boot-raspbian:
 		-drive if=pflash,format=raw,file=tests/e2e/EFI_VARS.fd \
 		-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22223-:22 \
 		-drive file=tests/e2e/raspbian-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
-		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio \
+		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio,readonly=on \
 		-device virtio-rng-pci
 	@echo "Raspbian (ARM64) booted (Headless, MTTCG, Port 22223)."
 
@@ -167,6 +167,7 @@ wait-ssh PORT:
 	@for i in $(seq 1 300); do \
 		if ssh -i tests/e2e/e2e_key -p {{PORT}} genesis@localhost -o StrictHostKeyChecking=no -o ConnectTimeout=1 echo "up" > /dev/null 2>&1; then \
 			echo "SSH is ready!"; \
+			sleep 5; \
 			break; \
 		fi; \
 		echo -n "."; \
@@ -194,7 +195,8 @@ ci-test os PORT target build="true":
 
 # Run all CI tests locally before pushing
 ci-local: build build-arm provision-vms
-	@echo "=== STARTING LOCAL CI TEST SUITE ==="
+	@echo "=== STARTING LOCAL CI TEST SUITE (Sequential) ==="
+	just clean-vms
 	just ci-test debian 22221 {{TARGET}}
 	just ci-test arch 22222 {{TARGET}}
 	just ci-test raspbian 22223 {{ARM_TARGET}}
