@@ -13,10 +13,6 @@ DEBIAN_URL    := "https://cloud.debian.org/images/cloud/bookworm/latest/debian-1
 ARCH_URL      := "https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2"
 RASPBIAN_URL  := "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-arm64.qcow2"
 
-# Auto-detect KVM: use hardware accel if /dev/kvm exists, else fall back to TCG
-ACCEL_X86     := if path_exists("/dev/kvm") == "true" { "kvm" } else { "tcg,thread=multi" }
-CPU_X86       := if path_exists("/dev/kvm") == "true" { "host" } else { "max" }
-
 # ─── Quality ──────────────────────────────────────────────────────────────────
 
 # Setup development environment (install QEMU, genisoimage, EFI firmware, Rust targets)
@@ -117,35 +113,15 @@ provision-raspbian: provision-setup
 
 # Boot Debian VM (headless, port 22221)
 boot-debian:
-    qemu-system-x86_64 -m 2G -smp 2 -daemonize -cpu {{CPU_X86}} -display none \
-        -accel {{ACCEL_X86}} \
-        -device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22221-:22 \
-        -drive file={{E2E_DIR}}/debian-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
-        -drive file={{E2E_DIR}}/cloud-init/seed.iso,format=raw,if=virtio,readonly=on \
-        -device virtio-rng-pci
-    @echo "Debian booted (Port 22221, accel={{ACCEL_X86}})."
+    scripts/boot-vm.sh debian 22221 {{E2E_DIR}}
 
 # Boot Arch Linux VM (headless, port 22222)
 boot-arch:
-    qemu-system-x86_64 -m 2G -smp 2 -daemonize -cpu {{CPU_X86}} -display none \
-        -accel {{ACCEL_X86}} \
-        -device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22222-:22 \
-        -drive file={{E2E_DIR}}/arch-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
-        -drive file={{E2E_DIR}}/cloud-init/seed.iso,format=raw,if=virtio,readonly=on \
-        -device virtio-rng-pci
-    @echo "Arch Linux booted (Port 22222, accel={{ACCEL_X86}})."
+    scripts/boot-vm.sh arch 22222 {{E2E_DIR}}
 
 # Boot Raspbian VM ARM64 (headless, port 22223)
 boot-raspbian:
-    qemu-system-aarch64 -m 2G -smp 2 -daemonize -M virt -cpu max -display none \
-        -accel tcg,thread=multi \
-        -drive if=pflash,format=raw,file={{E2E_DIR}}/EFI_CODE.fd,readonly=on \
-        -drive if=pflash,format=raw,file={{E2E_DIR}}/EFI_VARS.fd \
-        -device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22223-:22 \
-        -drive file={{E2E_DIR}}/raspbian-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
-        -drive file={{E2E_DIR}}/cloud-init/seed.iso,format=raw,if=virtio,readonly=on \
-        -device virtio-rng-pci
-    @echo "Raspbian (ARM64) booted (Port 22223)."
+    scripts/boot-vm.sh raspbian 22223 {{E2E_DIR}} --arm64
 
 # Deploy and run a command on Debian VM
 deploy-debian cmd="bootstrap" target=TARGET:
