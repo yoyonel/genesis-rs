@@ -16,6 +16,7 @@
 //! }
 //! ```
 
+pub mod executor;
 pub mod platform;
 
 /// Point d'entrée pour la logique métier du bootstrap.
