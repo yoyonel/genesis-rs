@@ -24,8 +24,15 @@ build-arm-native target=ARM_TARGET:
 	cargo build --release --target {{target}}
 
 # Lint the code and deny warnings
-lint:
+lint: lint-rust lint-ci
+
+# Lint Rust code
+lint-rust:
     cargo clippy -- -D warnings
+
+# Lint GitHub Actions workflows
+lint-ci:
+	actionlint .github/workflows/*.yml
 
 # Format the code
 format:

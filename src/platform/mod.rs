@@ -4,7 +4,7 @@ pub mod raspbian;
 
 use anyhow::Result;
 use os_info::{Info, Type};
-use sysinfo::{System, Disks};
+use sysinfo::{Disks, System};
 
 /// Represents an abstract interface for target Operating Systems.
 pub trait SystemPlatform {
@@ -24,20 +24,24 @@ pub trait SystemPlatform {
     fn print_summary(&self) {
         let mut sys = System::new_all();
         sys.refresh_all();
-        
+
         println!("--- SYSTEM SUMMARY ---");
         println!("OS:         {}", self.display_name());
-        
+
         if let Some(cpu) = sys.cpus().first() {
             println!("CPU:        {} ({} cores)", cpu.brand(), sys.cpus().len());
         }
-        
-        println!("RAM:        {:.2} GB", sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0);
-        
+
+        println!(
+            "RAM:        {:.2} GB",
+            sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0
+        );
+
         let disks = Disks::new_with_refreshed_list();
         for disk in &disks {
-            println!("Disk:       {:?} ({:.2} GB) - {:?}", 
-                disk.mount_point(), 
+            println!(
+                "Disk:       {:?} ({:.2} GB) - {:?}",
+                disk.mount_point(),
                 disk.total_space() as f64 / 1024.0 / 1024.0 / 1024.0,
                 disk.file_system()
             );

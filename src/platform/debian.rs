@@ -15,7 +15,7 @@ impl SystemPlatform for Debian {
 
     fn update_system(&self) -> Result<()> {
         println!("Updating system packages via apt...");
-        
+
         let status = Command::new("sudo")
             .env("DEBIAN_FRONTEND", "noninteractive")
             .args(["apt-get", "update"])
@@ -26,7 +26,13 @@ impl SystemPlatform for Debian {
 
         let status = Command::new("sudo")
             .env("DEBIAN_FRONTEND", "noninteractive")
-            .args(["apt-get", "upgrade", "-y", "-o", "Dpkg::Options::=--force-confold"])
+            .args([
+                "apt-get",
+                "upgrade",
+                "-y",
+                "-o",
+                "Dpkg::Options::=--force-confold",
+            ])
             .status()?;
         if !status.success() {
             anyhow::bail!("Failed to run apt-get upgrade");
@@ -39,9 +45,16 @@ impl SystemPlatform for Debian {
         println!("Installing package '{}' via apt...", name);
         let status = Command::new("sudo")
             .env("DEBIAN_FRONTEND", "noninteractive")
-            .args(["apt-get", "install", "-y", "-o", "Dpkg::Options::=--force-confold", name])
+            .args([
+                "apt-get",
+                "install",
+                "-y",
+                "-o",
+                "Dpkg::Options::=--force-confold",
+                name,
+            ])
             .status()?;
-        
+
         if !status.success() {
             anyhow::bail!("Failed to install package: {}", name);
         }
@@ -51,7 +64,7 @@ impl SystemPlatform for Debian {
     fn bootstrap(&self) -> Result<()> {
         println!("Bootstrapping {}...", self.display_name());
         self.update_system()?;
-        
+
         // Default essential packages
         let essentials = vec!["git", "curl", "vim", "htop"];
         for pkg in essentials {
