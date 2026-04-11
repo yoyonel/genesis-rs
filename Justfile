@@ -76,6 +76,8 @@ provision-setup:
 	@if [ ! -f tests/e2e/e2e_key ]; then \
 		ssh-keygen -t ed25519 -N "" -f tests/e2e/e2e_key -C "e2e@genesis" > /dev/null; \
 	fi
+	@PUB_KEY=$(cat tests/e2e/e2e_key.pub); \
+	sed -i "s|__GENESIS_SSH_KEY__|${PUB_KEY}|" tests/e2e/cloud-init/user-data
 
 # Provision all Cloud images
 provision-vms: provision-setup provision-debian provision-arch provision-raspbian
@@ -115,11 +117,12 @@ provision-raspbian: provision-setup
 # Boot debian VM
 boot-debian:
 	qemu-system-x86_64 -m 2G -smp 2 -daemonize -cpu max -display none \
+		-accel tcg,thread=multi \
 		-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22221-:22 \
 		-drive file=tests/e2e/debian-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
 		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio \
 		-device virtio-rng-pci
-	@echo "Debian booted (Headless, TCG, Port 22221)."
+	@echo "Debian booted (Headless, TCG Multi, Port 22221)."
 
 # Deploy and run a command on Debian VM
 deploy-debian cmd="bootstrap" target=TARGET:
@@ -129,11 +132,12 @@ deploy-debian cmd="bootstrap" target=TARGET:
 # Boot Arch Linux VM
 boot-arch:
 	qemu-system-x86_64 -m 2G -smp 2 -daemonize -cpu max -display none \
+		-accel tcg,thread=multi \
 		-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22222-:22 \
 		-drive file=tests/e2e/arch-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
 		-drive file=tests/e2e/cloud-init/seed.iso,format=raw,if=virtio \
 		-device virtio-rng-pci
-	@echo "Arch Linux booted (Headless, TCG, Port 22222)."
+	@echo "Arch Linux booted (Headless, TCG Multi, Port 22222)."
 
 # Deploy and run a command on Arch Linux VM
 deploy-arch cmd="bootstrap" target=TARGET:
@@ -157,10 +161,10 @@ deploy-raspbian cmd="bootstrap" target=ARM_TARGET:
 	scp -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -P 22223 target/{{target}}/release/genesis-rs genesis@localhost:/tmp/genesis-rs
 	ssh -o StrictHostKeyChecking=no -i tests/e2e/e2e_key -p 22223 genesis@localhost "/tmp/genesis-rs {{cmd}}"
 
-# Wait for SSH to be ready on a specific port
+# Wait for SSH to be ready on a specific port (300 tries = 10 minutes timeout)
 wait-ssh PORT:
 	@echo "Waiting for SSH on port {{PORT}}..."
-	@for i in $(seq 1 120); do \
+	@for i in $(seq 1 300); do \
 		if ssh -i tests/e2e/e2e_key -p {{PORT}} genesis@localhost -o StrictHostKeyChecking=no -o ConnectTimeout=1 echo "up" > /dev/null 2>&1; then \
 			echo "SSH is ready!"; \
 			break; \

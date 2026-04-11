@@ -5,7 +5,7 @@ users:
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     ssh-authorized-keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIENglCUjRo5Lco6grpwvLtl+9cYxXRt1rKyvtaQT6pGq genesis-e2e
+      - __GENESIS_SSH_KEY__
 ssh_pwauth: true
 disable_root: true
 chpasswd:
