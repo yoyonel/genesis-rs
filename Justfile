@@ -12,16 +12,16 @@ check:
     cargo check
 
 # Build for the host architecture
-build:
-    cargo build --release --target {{TARGET}}
+build target=TARGET:
+    cargo build --release --target {{target}}
 
 # Build for ARM64 using Distrobox (genesis-lab)
 build-arm:
 	distrobox enter genesis-lab -- cargo build --release --target {{ARM_TARGET}}
 
 # Build for ARM64 natively (for CI)
-build-arm-native:
-	cargo build --release --target {{ARM_TARGET}}
+build-arm-native target=ARM_TARGET:
+	cargo build --release --target {{target}}
 
 # Lint the code and deny warnings
 lint:
@@ -131,13 +131,32 @@ wait-ssh PORT:
 		sleep 2; \
 	done
 
-# Full CI command (Detect only for simple E2E verification)
+# Full CI command (Timed benchmark + System Detect)
 ci-test os PORT target:
-	just build target={{target}}
-	just boot-{{os}}
-	just wait-ssh {{PORT}}
-	just deploy-{{os}} cmd="detect" target={{target}}
-	just clean-vms
+	just build {{target}}
+	START_BOOT=$(date +%s%3N); \
+	just boot-{{os}} > /dev/null 2>&1; \
+	just wait-ssh {{PORT}}; \
+	END_BOOT=$(date +%s%3N); \
+	BOOT_TIME=$((END_BOOT - START_BOOT)); \
+	START_DEPLOY=$(date +%s%3N); \
+	just deploy-{{os}} "detect" {{target}}; \
+	END_DEPLOY=$(date +%s%3N); \
+	DEPLOY_TIME=$((END_DEPLOY - START_DEPLOY)); \
+	just clean-vms; \
+	echo ""; \
+	echo "--- CI PERFORMANCE METRICS ({{os}}) ---"; \
+	echo "Boot Time:   ${BOOT_TIME}ms"; \
+	echo "Deploy Time: ${DEPLOY_TIME}ms"; \
+	echo "Total E2E:   $((BOOT_TIME + DEPLOY_TIME))ms"
+
+# Run all CI tests locally before pushing
+ci-local: build build-arm provision-vms
+	@echo "=== STARTING LOCAL CI TEST SUITE ==="
+	just ci-test debian 22221 {{TARGET}}
+	just ci-test arch 22222 {{TARGET}}
+	just ci-test raspbian 22223 {{ARM_TARGET}}
+	@echo "=== LOCAL CI TEST SUITE COMPLETED ==="
 
 # Run the E2E benchmark and output performance metrics
 benchmark os="debian" target=TARGET:
