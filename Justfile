@@ -38,9 +38,11 @@ lint-ci:
 format:
     cargo fmt
 
-# Generate and open documentation
+# Générer la doc et lancer un serveur local pour la consulter proprement
 doc:
-    cargo doc --no-deps --open
+	cargo doc --no-deps
+	@echo "Lancement du serveur de doc sur http://localhost:8085"
+	python3 -m http.server --directory target/doc 8085
 
 # Check formatting
 format-check:
