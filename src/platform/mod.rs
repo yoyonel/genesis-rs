@@ -1,26 +1,37 @@
-pub mod arch;
-pub mod debian;
-pub mod raspbian;
+//! # Platform Module
+//!
+//! Ce module contient les abstractions nécessaires pour supporter différentes
+//! distributions Linux. Il définit le trait [`SystemPlatform`] qui doit être
+//! implémenté par chaque OS supporté.
 
 use anyhow::Result;
 use os_info::{Info, Type};
 use sysinfo::{Disks, System};
 
-/// Represents an abstract interface for target Operating Systems.
+pub mod arch;
+pub mod debian;
+pub mod raspbian;
+
+/// Interface unifiée pour la gestion des systèmes d'exploitation cibles.
+///
+/// Chaque distribution (Debian, Arch, etc.) implémente ce trait pour
+/// traduire les commandes génériques en commandes spécifiques (ex: `apt` vs `pacman`).
 pub trait SystemPlatform {
-    /// Returns the display name of the operating system.
+    /// Retourne le nom d'affichage complet du système (ex: "Debian 12.0.0").
     fn display_name(&self) -> String;
 
-    /// Runs the bootstrap initialization logic for the platform.
+    /// Exécute la séquence complète de bootstrap pour cette plateforme.
+    /// Cela inclut généralement la mise à jour des dépôts et l'installation
+    /// des paquets essentiels.
     fn bootstrap(&self) -> Result<()>;
 
-    /// Updates the system packages to their latest versions.
+    /// Met à jour les paquets du système vers leur dernière version stable.
     fn update_system(&self) -> Result<()>;
 
-    /// Installs a specific package by name.
+    /// Installe un paquet spécifique par son nom technique.
     fn install_package(&self, name: &str) -> Result<()>;
 
-    /// Prints a summary of the system hardware and OS.
+    /// Affiche un résumé détaillé des caractéristiques matérielles (CPU, RAM, Disques).
     fn print_summary(&self) {
         let mut sys = System::new_all();
         sys.refresh_all();
@@ -61,13 +72,15 @@ pub trait SystemPlatform {
     }
 }
 
-/// Detects the underlying OS and returns its corresponding SystemPlatform trait object.
+/// Détecte l'OS actuel et retourne une implémentation de [`SystemPlatform`].
+///
+/// Retourne `None` si la distribution n'est pas supportée.
 pub fn get_platform() -> Option<Box<dyn SystemPlatform>> {
     let info = os_info::get();
     detect_from_info(&info)
 }
 
-/// Pure logic for OS detection extracted for easy unit testing.
+/// Logique de détection à partir des informations système de `os_info`.
 fn detect_from_info(info: &Info) -> Option<Box<dyn SystemPlatform>> {
     let version = info.version().to_string();
     match info.os_type() {

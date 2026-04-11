@@ -1,12 +1,16 @@
-use super::SystemPlatform;
-use anyhow::{Ok, Result};
+//! # Arch Linux Platform
+//!
+//! Support pour Arch Linux utilisant le gestionnaire de paquets `pacman`.
 
-/// Arch Linux platform implementation.
+use super::SystemPlatform;
+use anyhow::Result;
+use std::process::Command;
+
+/// Implémentation de la plateforme Arch Linux.
 pub struct Arch {
+    /// Version de l'OS (généralement "rolling").
     pub version: String,
 }
-
-use std::process::Command;
 
 impl SystemPlatform for Arch {
     fn display_name(&self) -> String {

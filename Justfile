@@ -38,6 +38,10 @@ lint-ci:
 format:
     cargo fmt
 
+# Generate and open documentation
+doc:
+    cargo doc --no-deps --open
+
 # Check formatting
 format-check:
     cargo fmt --check

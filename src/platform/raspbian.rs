@@ -1,12 +1,16 @@
-use super::SystemPlatform;
-use anyhow::{Ok, Result};
+//! # Raspbian Platform
+//!
+//! Support pour Raspberry Pi OS (anciennement Raspbian) utilisant le gestionnaire de paquets `apt`.
 
-/// Raspbian (Raspberry Pi OS) platform implementation.
+use super::SystemPlatform;
+use anyhow::Result;
+use std::process::Command;
+
+/// Implémentation de la plateforme Raspberry Pi OS.
 pub struct Raspbian {
+    /// Version de l'OS (ex: "12").
     pub version: String,
 }
-
-use std::process::Command;
 
 impl SystemPlatform for Raspbian {
     fn display_name(&self) -> String {

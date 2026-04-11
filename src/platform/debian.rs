@@ -1,12 +1,16 @@
-use super::SystemPlatform;
-use anyhow::{Ok, Result};
+//! # Debian Platform
+//!
+//! Support pour les distributions basées sur Debian utilisant le gestionnaire de paquets `apt`.
 
-/// Debian platform implementation.
+use super::SystemPlatform;
+use anyhow::Result;
+use std::process::Command;
+
+/// Implémentation de la plateforme Debian.
 pub struct Debian {
+    /// Version spécifique de Debian (ex: "12").
     pub version: String,
 }
-
-use std::process::Command;
 
 impl SystemPlatform for Debian {
     fn display_name(&self) -> String {
