@@ -87,12 +87,7 @@ build-arm-native target=ARM_TARGET:
 
 # Generate SSH key pair for E2E tests (idempotent)
 provision-setup:
-    @mkdir -p {{E2E_DIR}}/cloud-init
-    @if [ ! -f {{E2E_KEY}} ]; then \
-        ssh-keygen -t ed25519 -N "" -f {{E2E_KEY}} -C "e2e@genesis" > /dev/null; \
-    fi
-    @PUB_KEY=$$(cat {{E2E_KEY}}.pub); \
-    sed -i "s|__GENESIS_SSH_KEY__|$${PUB_KEY}|" {{E2E_DIR}}/cloud-init/user-data 2>/dev/null || true
+    scripts/provision-setup.sh {{E2E_DIR}}
 
 # Provision all 3 Cloud VM images
 provision-vms: provision-setup provision-debian provision-arch provision-raspbian
