@@ -12,37 +12,24 @@ Ce document sert de "Source of Truth" pour les performances de base du projet `g
 | :--- | :--- |
 | **OS** | Bazzite 42 (Fedora 42 base) |
 | **Kernel** | 6.16.4-116.bazzite.fc42.x86_64 |
-| **CPU** | Intel(R) Core(TM) i7-4720HQ @ 2.60GHz |
-| **Mémoire** | (Hôte standard pour ce CPU ~16GB) |
 | **Architecture** | x86_64 |
-
-## 🛠️ Stack Technique & Outils
-| Outil | Version | Rôle |
-| :--- | :--- | :--- |
-| **Rustc** | 1.92.0 | Compilateur |
-| **Cargo** | 1.92.0 | Gestionnaire de paquets |
-| **QEMU** | 10.2.2 | Hyperviseur (avec KVM activé) |
-| **Just** | 1.43.0 | Automate de tâches |
-| **Clap** | 4.6.0 | Parsing CLI |
-| **Target Rust** | `x86_64-unknown-linux-musl` | Compilation statique |
+| **Build Env** | Distrobox `genesis-lab` (Fedora 42) pour ARM64 |
 
 ## ⏱️ Résultats de la Référence (Baseline)
 
-### Scénario : Boot & Deploy Debian 12 (Cloud Image)
-| Phase | Temps Mesuré | Conditions |
-| :--- | :--- | :--- |
-| **Boot VM (Ready for SSH)** | **10,445 ms** | KVM activé, Images QCow2 sur SSD. |
-| **Deploy & Exec** | **314 ms** | Binaire déjà compilé, SCP local. |
-| **TOTAL Cycle E2E** | **10,759 ms** | Référence pour Debian. |
+| Distribution | Architecture | Boot Time (ms) | Deploy Time (ms) | Total E2E (ms) | Conditions |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Debian 12** | x86_64 | 8 472 | 7 | 8 479 | KVM activé |
+| **Arch Linux** | x86_64 | 14 700 | 6 | 14 706 | KVM activé |
+| **Raspbian*** | ARM64 | 108 816 | 453 | 109 269 | Émulation TCG (Lent) |
 
-### Scénario : Boot & Deploy Arch Linux (Cloud Image)
-| Phase | Temps Mesuré | Conditions |
-| :--- | :--- | :--- |
-| **Boot VM (Ready for SSH)** | **14,679 ms** | KVM activé, Images QCow2 sur SSD. |
-| **Deploy & Exec** | **372 ms** | Binaire déjà compilé, SCP local. |
-| **TOTAL Cycle E2E** | **15,051 ms** | Référence pour Arch Linux. |
+*\*Testé sur Debian 12 ARM64 pour la partie automation.*
+
+> [!NOTE]
+> Les temps ARM64 sont ~10x supérieurs aux versions x86_64 car QEMU doit traduire chaque instruction CPU (TCG) sur une architecture différente de l'hôte.
 
 ## 📝 Observations
-- L'utilisation de **KVM** est le facteur critique ; sans lui, le boot passe de ~10s à plus de 60s.
-- Le temps de déploiement est négligeable par rapport au boot.
-- Tout ajout de logique lourde dans `platform::debian::bootstrap` devra être monitoré via cette référence.
+- L'utilisation de **KVM** est le facteur critique pour x86_64.
+- Pour **ARM64**, l'absence de KVM (émulation TCG) pénalise fortement le cycle de test (~2 minutes).
+- Le déploiement ARM a été effectué via une compilation croisée dans un container **Distrobox** dédié.
+- Les VMs tournent désormais en mode **Headless** (`-nographic`) pour une intégration CI/CD fluide.
