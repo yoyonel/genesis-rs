@@ -98,10 +98,13 @@ jobs:
           name: genesis-binaries
           path: target
 
+      - name: Fix binary permissions
+        run: find target -name genesis-rs -type f -exec chmod +x {} \;
+
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-system-x86 qemu-system-arm genisoimage qemu-utils
+          sudo apt-get install -y qemu-system-x86 qemu-system-arm qemu-utils genisoimage qemu-efi-aarch64
           
       - name: Install Just
         uses: extractions/setup-just@v2
@@ -117,5 +120,5 @@ jobs:
         run: just provision-${{ matrix.os }}
 
       - name: Run E2E Verification (System Info)
-        run: just ci-test ${{ matrix.os }} ${{ matrix.port }} ${{ matrix.target }} "false"
+        run: just ci-test ${{ matrix.os }} ${{ matrix.port }} ${{ matrix.target }} "true"
         timeout-minutes: 15
