@@ -83,33 +83,33 @@ deploy-arch target=TARGET:
 
 # Run the E2E benchmark and output performance metrics
 benchmark os="debian" target=TARGET:
-	@OS_PORT=$$(case "{{os}}" in "debian") echo "22221";; "arch") echo "22222";; *) echo "0";; esac); \
-	if [ "$$OS_PORT" = "0" ]; then echo "Unsupported OS: {{os}}"; exit 1; fi; \
-	@killall qemu-system-x86_64 2>/dev/null || true; \
-	@START_BOOT=$$(date +%s%3N); \
+	@OS_PORT=$(case "{{os}}" in "debian") echo "22221";; "arch") echo "22222";; *) echo "0";; esac); \
+	if [ "$OS_PORT" = "0" ]; then echo "Unsupported OS: {{os}}"; exit 1; fi; \
+	killall qemu-system-x86_64 2>/dev/null || true; \
+	START_BOOT=$(date +%s%3N); \
 	just boot-{{os}} > /dev/null 2>&1; \
-	echo -n "Waiting for SSH on port $${OS_PORT}..."; \
+	echo -n "Waiting for SSH on port ${OS_PORT}..."; \
 	END_BOOT=""; \
-	for i in $$(seq 1 30); do \
-		if ssh -i tests/e2e/e2e_key -p $${OS_PORT} genesis@localhost -o StrictHostKeyChecking=no -o ConnectTimeout=1 echo "up" > /dev/null 2>&1; then \
-			END_BOOT=$$(date +%s%3N); \
+	for i in $(seq 1 30); do \
+		if ssh -i tests/e2e/e2e_key -p ${OS_PORT} genesis@localhost -o StrictHostKeyChecking=no -o ConnectTimeout=1 echo "up" > /dev/null 2>&1; then \
+			END_BOOT=$(date +%s%3N); \
 			echo " Ready."; \
 			break; \
 		fi; \
 		echo -n "."; \
 		sleep 2; \
 	done; \
-	if [ -z "$$END_BOOT" ]; then echo "Boot failed"; exit 1; fi; \
-	BOOT_TIME=$$(($$END_BOOT - $$START_BOOT)); \
-	START_DEPLOY=$$(date +%s%3N); \
+	if [ -z "$END_BOOT" ]; then echo "Boot failed"; exit 1; fi; \
+	BOOT_TIME=$((END_BOOT - START_BOOT)); \
+	START_DEPLOY=$(date +%s%3N); \
 	just deploy-{{os}} target={{target}} > /dev/null 2>&1; \
-	END_DEPLOY=$$(date +%s%3N); \
-	DEPLOY_TIME=$$(($$END_DEPLOY - $$START_DEPLOY)); \
+	END_DEPLOY=$(date +%s%3N); \
+	DEPLOY_TIME=$((END_DEPLOY - START_DEPLOY)); \
 	killall qemu-system-x86_64 2>/dev/null || true; \
 	echo "--- BENCHMARK RESULTS ({{os}}) ---"; \
-	echo "Boot Time:   $${BOOT_TIME}ms"; \
-	echo "Deploy Time: $${DEPLOY_TIME}ms"; \
-	echo "Total E2E:   $$(($$BOOT_TIME + $$DEPLOY_TIME))ms"
+	echo "Boot Time:   ${BOOT_TIME}ms"; \
+	echo "Deploy Time: ${DEPLOY_TIME}ms"; \
+	echo "Total E2E:   $((BOOT_TIME + DEPLOY_TIME))ms"
 
 
 # Kill all background VMs
