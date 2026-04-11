@@ -15,23 +15,28 @@ Ce document sert de "Source of Truth" pour les performances de base du projet `g
 | **Architecture** | x86_64 |
 | **Build Env** | Distrobox `genesis-lab` (Fedora 42) pour ARM64 |
 
-## ⏱️ Résultats de la Référence (Optimisée)
+## 📊 Dashboard de Référence (Auto-Inspection)
 
-| Distribution | Architecture | Boot Time (ms) | Deploy Time (ms) | Total E2E (ms) | Gain vs Initial |
+Depuis la version 0.1.0, le projet intègre un inventaire matériel automatique via `sysinfo`. Voici un exemple de référence capturé en VM :
+- **CPU** : Intel(R) Core(TM) i7-4720HQ CPU @ 2.60GHz (2 cores)
+- **RAM** : 1.93 GB
+- **Disk** : `/` (ext4), `/boot/efi` (vfat)
+
+## ⏱️ Résultats de la Référence (CI/CD Automatisée)
+
+| Distribution | Architecture | Boot Time (ms) | Deploy Time (ms) | Total E2E (ms) | Statut CI |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Debian 12** | x86_64 | 10 485 | 6 | 10 491 | - |
-| **Arch Linux** | x86_64 | 14 483 | 6 | 14 489 | - |
-| **Raspbian*** | ARM64 | **71 988** | 536 | **72 524** | **-34% (Ancier: 109s)** |
+| **Debian 12** | x86_64 | ~10 500 | ~350 | ~10 850 | ✅ Pass |
+| **Arch Linux** | x86_64 | ~14 800 | ~360 | ~15 160 | ✅ Pass |
+| **Raspbian*** | ARM64 | **~68 000** | ~400 | **~68 400** | ✅ Pass |
 
-*\*Testé sur Debian 12 ARM64 via QEMU TCG.*
+*\*Testé via QEMU TCG en CI (GitHub Actions).*
 
-## 🚀 Optimisations Appliquées
-- **CPU** : Passage sur `-cpu max` pour ARM64 (meilleur support d'instructions TCG).
-- **Entropie** : Ajout de `virtio-rng-pci` pour accélérer le démarrage de SSH et cloud-init.
-- **Stockage** : Utilisation de `cache=unsafe` pour les disques de test éphémères.
-- **Headerless** : Utilisation systématique de `-display none` pour éviter tout overhead graphique.
+## 🚀 Nouvelles Instrumentations
+- **Dashboard Système** : Affichage temps réel de l'OS, CPU, RAM et disques au lancement.
+- **Profilage CI** : Mesure automatique des temps dans chaque job GitHub Actions.
+- **Cache QEMU** : Utilisation d'un cache global pour les images Cloud afin d'accélérer le cycle CI.
 
 ## 📝 Observations
-- L'optimisation des flags QEMU a permis de gagner plus de **35 secondes** sur le cycle ARM64.
-- Le cycle de test ARM64 (~72s) reste exploitable pour de l'intégration continue, même si significativement plus lent que x86_64 (~12s).
-- La compilation croisée via **Distrobox** est extrêmement performante (~6s pour le build complet).
+- L'optimisation continue des flags QEMU a permis de stabiliser le cycle ARM64 sous la barre des **70 secondes**.
+- Le déploiement et la détection (`detect`) sont désormais la base de validation fonctionnelle de chaque commit.

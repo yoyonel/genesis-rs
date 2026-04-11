@@ -51,12 +51,31 @@ Pour ARM, `genesis-rs` utilise un container **Distrobox** nommé `genesis-lab` q
 just deploy-raspbian # Compile via Distrobox et pousse
 ```
 
-## ⏱️ Benchmarking
+## 5. Benchmarking & Profiling ⏱️
 
-Pour mesurer le temps de boot et de déploiement d'un OS spécifique :
+Pour mesurer la performance brute (boot et déploiement) sur un OS spécifique :
 ```bash
 just benchmark debian
 just benchmark raspbian
 ```
+Les résultats incluent désormais le **Dashboard Matériel** (CPU, RAM, Disques) généré par l'application en temps réel.
 
-Les résultats sont sauvegardés dans `docs/benchmarks/initial_reference.md`.
+## 6. Pipeline CI/CD (GitHub Actions) 🤖
+
+Le projet intègre une configuration **GitHub Actions** (`.github/workflows/ci.yml`) qui s'exécute à chaque push.
+Elle réalise :
+- Le build statique multi-architecture (x86_64 et ARM64).
+- Le boot de 3 instances QEMU en parallèle (Debian, Arch, Raspbian).
+- La validation fonctionnelle via la commande `detect` (inspections système).
+- Le tracking des métriques de performance (**Boot Time**, **Deploy Time**) directement dans les logs de la CI.
+
+## 7. Validation Locale (CI-Local) 🧪
+
+Avant de pusher vos modifications, vous pouvez jouer l'intégralité du pipeline CI sur votre machine :
+```bash
+just ci-local
+```
+Cette commande enchaîne les tests sur Debian, Arch et Raspbian. Elle utilise automatiquement **Distrobox** pour la partie ARM si vous êtes sur Bazzite, garantissant une parité parfaite avec l'infrastructure de production du lab.
+
+---
+Consultez le [Dashboard Système](file:///home/latty/Prog/genesis-rs/src/platform/mod.rs) pour voir comment les métadonnées sont extraites.
