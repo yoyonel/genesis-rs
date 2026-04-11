@@ -10,19 +10,21 @@ Assurez-vous d'avoir les outils de virtualisation et de génération d'ISO (pour
 
 ## 2. Provisionnement Automatique
 
-La recette correspondante télécharge la version officielle Debian Cloud (image `.qcow2`), génère une clé SSH dédiée `e2e_key`, et package le "Seed" (config Cloud-Init) :
+La recette correspondante télécharge les versions officielles Cloud (Debian 12 et Arch Linux), génère une clé SSH dédiée `e2e_key`, et package le "Seed" (config Cloud-Init) :
 
 ```bash
 just provision-vms
 ```
-*(Ceci est fonctionnel pour la cible Debian standard. Le code pour intégrer logiquement Arch Linux Cloud et Raspbian suit le même pattern).*
+*(Ceci est fonctionnel pour les cibles Arch Linux et Debian).*
 
 ## 3. Démarrage (Headless)
 
 ```bash
-just boot-debian
+just boot-debian   # Redirection SSH sur port 22221
+# ou
+just boot-arch     # Redirection SSH sur port 22222
 ```
-Cela lancera l'instance Debian en arrière-plan (`-daemonize`). L'image `cloud-init` configurera le réseau et injectera `genesis / e2e_key` automatiquement durant son boot (~ 60 secondes).
+Cela lancera l'instance en arrière-plan (`-daemonize`). L'image `cloud-init` configurera le réseau et injectera `genesis / e2e_key` automatiquement durant son boot (~ 20-40 secondes).
 
 ## 4. Déploiement & Execution
 
@@ -30,6 +32,8 @@ Une fois la VM démarrée, il suffit de compiler l'application statiquement (`mu
 
 ```bash
 just deploy-debian
+# ou
+just deploy-arch
 ```
 
-> **Note :** Le Justfile s'occupera d'invoquer la compilation `cargo build --release --target x86_64-unknown-linux-musl`, d'envoyer (SCP) le binaire `genesis-rs` vers `/tmp/genesis-rs` via le port proxy redirigé `22221`, et de l'exécuter dans la foulée via SSH pour vérifier son output !
+> **Note :** Le Justfile s'occupera d'invoquer la compilation `cargo build --release --target x86_64-unknown-linux-musl`, d'envoyer (SCP) le binaire `genesis-rs` vers `/tmp/genesis-rs` via le port proxy redirigé, et de l'exécuter dans la foulée via SSH !

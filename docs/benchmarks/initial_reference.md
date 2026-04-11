@@ -29,13 +29,18 @@ Ce document sert de "Source of Truth" pour les performances de base du projet `g
 ## ⏱️ Résultats de la Référence (Baseline)
 
 ### Scénario : Boot & Deploy Debian 12 (Cloud Image)
-Le test consiste à démarrer une VM Debian vierge via QEMU/KVM avec injection de clé SSH via Cloud-Init, puis à déployer et exécuter le binaire `genesis-rs`.
-
 | Phase | Temps Mesuré | Conditions |
 | :--- | :--- | :--- |
 | **Boot VM (Ready for SSH)** | **10,445 ms** | KVM activé, Images QCow2 sur SSD. |
 | **Deploy & Exec** | **314 ms** | Binaire déjà compilé, SCP local. |
-| **TOTAL Cycle E2E** | **10,759 ms** | Référence pour itération rapide. |
+| **TOTAL Cycle E2E** | **10,759 ms** | Référence pour Debian. |
+
+### Scénario : Boot & Deploy Arch Linux (Cloud Image)
+| Phase | Temps Mesuré | Conditions |
+| :--- | :--- | :--- |
+| **Boot VM (Ready for SSH)** | **14,679 ms** | KVM activé, Images QCow2 sur SSD. |
+| **Deploy & Exec** | **372 ms** | Binaire déjà compilé, SCP local. |
+| **TOTAL Cycle E2E** | **15,051 ms** | Référence pour Arch Linux. |
 
 ## 📝 Observations
 - L'utilisation de **KVM** est le facteur critique ; sans lui, le boot passe de ~10s à plus de 60s.
