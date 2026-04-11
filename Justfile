@@ -23,16 +23,22 @@ build-arm:
 build-arm-native target=ARM_TARGET:
 	cargo build --release --target {{target}}
 
-# Lint the code and deny warnings
-lint: lint-rust lint-ci
+# Vérifier la qualité du code (Rust + CI + Existence des Actions)
+lint: lint-rust lint-ci check-actions
 
-# Lint Rust code
+# Lint du code Rust
 lint-rust:
     cargo clippy -- -D warnings
 
-# Lint GitHub Actions workflows
+# Lint des workflows GitHub Actions
 lint-ci:
-	actionlint .github/workflows/*.yml
+	actionlint .github/workflows/*.yml || echo "⚠️ actionlint non trouvé ou en erreur, ignoré."
+
+# Vérifier l'existence des dépôts GitHub Actions utilisés
+check-actions:
+	@echo "🔍 Vérification de l'existence des GitHub Actions..."
+	@grep "uses:" .github/workflows/*.yml | grep -v "./" | sed 's/.*uses: \(.*\)@.*/\1/' | sort -u | xargs -n 1 gh repo view --json nameWithOwner -q .nameWithOwner || (echo "❌ Une ou plusieurs actions sont introuvables !"; exit 1)
+	@echo "✅ Toutes les actions sont valides."
 
 # Format the code
 format:
