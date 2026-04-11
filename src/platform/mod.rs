@@ -12,6 +12,12 @@ pub trait SystemPlatform {
 
     /// Runs the bootstrap initialization logic for the platform.
     fn bootstrap(&self) -> Result<()>;
+
+    /// Updates the system packages to their latest versions.
+    fn update_system(&self) -> Result<()>;
+
+    /// Installs a specific package by name.
+    fn install_package(&self, name: &str) -> Result<()>;
 }
 
 /// Detects the underlying OS and returns its corresponding SystemPlatform trait object.
