@@ -98,7 +98,13 @@ provision-raspbian:
 	mkisofs -output tests/e2e/cloud-init/seed.iso -volid cidata -joliet -rock tests/e2e/cloud-init/user-data tests/e2e/cloud-init/meta-data
 	# Prepare padded EFI firmware (64MB required by QEMU virt machine)
 	dd if=/dev/zero of=tests/e2e/EFI_CODE.fd bs=1M count=64 status=none
-	dd if=/usr/share/edk2/aarch64/QEMU_EFI.fd of=tests/e2e/EFI_CODE.fd conv=notrunc status=none
+	# Find EFI firmware path (Distro agnostic)
+	EFI_PATH=""; \
+	for p in "/usr/share/AAVMF/AAVMF_CODE.fd" "/usr/share/edk2/aarch64/QEMU_EFI.fd" "/usr/share/qemu-efi-aarch64/QEMU_EFI.fd"; do \
+		if [ -f "$p" ]; then EFI_PATH="$p"; break; fi; \
+	done; \
+	if [ -z "$EFI_PATH" ]; then echo "❌ Error: QEMU AArch64 EFI firmware not found!"; exit 1; fi; \
+	dd if="$EFI_PATH" of=tests/e2e/EFI_CODE.fd conv=notrunc status=none
 	dd if=/dev/zero of=tests/e2e/EFI_VARS.fd bs=1M count=64 status=none
 
 # Boot debian VM
