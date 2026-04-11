@@ -2,13 +2,15 @@ use super::SystemPlatform;
 use anyhow::{Ok, Result};
 
 /// Debian platform implementation.
-pub struct Debian;
+pub struct Debian {
+    pub version: String,
+}
 
 use std::process::Command;
 
 impl SystemPlatform for Debian {
-    fn display_name(&self) -> &'static str {
-        "Debian LTS"
+    fn display_name(&self) -> String {
+        format!("Debian {}", self.version)
     }
 
     fn update_system(&self) -> Result<()> {

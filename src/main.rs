@@ -14,12 +14,12 @@ fn main() -> Result<()> {
             let platform =
                 get_platform().ok_or_else(|| anyhow!("Unsupported operating system detected."))?;
 
-            println!("Detected Platform: {}", platform.display_name());
+            platform.print_summary();
             platform.bootstrap()?;
         }
         Commands::Detect => {
             if let Some(platform) = get_platform() {
-                println!("Supported Platform Detected: {}", platform.display_name());
+                platform.print_summary();
             } else {
                 println!("Unsupported operating system.");
                 println!("System Info: {:?}", os_info::get());

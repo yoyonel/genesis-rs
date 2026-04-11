@@ -2,13 +2,15 @@ use super::SystemPlatform;
 use anyhow::{Ok, Result};
 
 /// Raspbian (Raspberry Pi OS) platform implementation.
-pub struct Raspbian;
+pub struct Raspbian {
+    pub version: String,
+}
 
 use std::process::Command;
 
 impl SystemPlatform for Raspbian {
-    fn display_name(&self) -> &'static str {
-        "Raspberry Pi OS (Raspbian)"
+    fn display_name(&self) -> String {
+        format!("Raspberry Pi OS {}", self.version)
     }
 
     fn update_system(&self) -> Result<()> {

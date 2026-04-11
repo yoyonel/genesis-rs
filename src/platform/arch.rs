@@ -2,13 +2,15 @@ use super::SystemPlatform;
 use anyhow::{Ok, Result};
 
 /// Arch Linux platform implementation.
-pub struct Arch;
+pub struct Arch {
+    pub version: String,
+}
 
 use std::process::Command;
 
 impl SystemPlatform for Arch {
-    fn display_name(&self) -> &'static str {
-        "Arch Linux"
+    fn display_name(&self) -> String {
+        format!("Arch Linux {}", self.version)
     }
 
     fn update_system(&self) -> Result<()> {
