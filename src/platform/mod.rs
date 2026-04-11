@@ -82,21 +82,20 @@ pub trait SystemPlatform {
 /// which share the same package manager and command structure.
 pub(crate) fn apt_update_system(executor: &dyn CommandExecutor) -> Result<()> {
     println!("Updating system packages via apt...");
-    executor.execute_with_env(
+    executor.execute(
         "sudo",
-        &["apt-get", "update"],
-        &[("DEBIAN_FRONTEND", "noninteractive")],
+        &["DEBIAN_FRONTEND=noninteractive", "apt-get", "update"],
     )?;
-    executor.execute_with_env(
+    executor.execute(
         "sudo",
         &[
+            "DEBIAN_FRONTEND=noninteractive",
             "apt-get",
             "upgrade",
             "-y",
             "-o",
             "Dpkg::Options::=--force-confold",
         ],
-        &[("DEBIAN_FRONTEND", "noninteractive")],
     )?;
     Ok(())
 }
@@ -104,9 +103,10 @@ pub(crate) fn apt_update_system(executor: &dyn CommandExecutor) -> Result<()> {
 /// Common implementation for apt-based package installation.
 pub(crate) fn apt_install_package(executor: &dyn CommandExecutor, name: &str) -> Result<()> {
     println!("Installing package '{}' via apt...", name);
-    executor.execute_with_env(
+    executor.execute(
         "sudo",
         &[
+            "DEBIAN_FRONTEND=noninteractive",
             "apt-get",
             "install",
             "-y",
@@ -114,7 +114,6 @@ pub(crate) fn apt_install_package(executor: &dyn CommandExecutor, name: &str) ->
             "Dpkg::Options::=--force-confold",
             name,
         ],
-        &[("DEBIAN_FRONTEND", "noninteractive")],
     )?;
     Ok(())
 }

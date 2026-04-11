@@ -25,7 +25,7 @@ printf "Waiting for SSH on port %s..." "${OS_PORT}"
 END_BOOT=""
 for _ in $(seq 1 120); do
     if ssh -i tests/e2e/e2e_key -p "${OS_PORT}" genesis@localhost \
-        -o StrictHostKeyChecking=no -o ConnectTimeout=1 \
+        -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=1 \
         echo "up" > /dev/null 2>&1; then
         END_BOOT=$(date +%s%3N)
         echo " Ready."

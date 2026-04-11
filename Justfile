@@ -7,11 +7,15 @@ TARGET        := "x86_64-unknown-linux-musl"
 ARM_TARGET    := "aarch64-unknown-linux-musl"
 E2E_DIR       := "tests/e2e"
 E2E_KEY       := E2E_DIR / "e2e_key"
-SSH_OPTS      := "-o StrictHostKeyChecking=no -i " + E2E_KEY
+SSH_OPTS      := "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i " + E2E_KEY
 
 DEBIAN_URL    := "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2"
 ARCH_URL      := "https://geo.mirror.pkgbuild.com/images/latest/Arch-Linux-x86_64-cloudimg.qcow2"
 RASPBIAN_URL  := "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-arm64.qcow2"
+
+# Auto-detect KVM: use hardware accel if /dev/kvm exists, else fall back to TCG
+ACCEL_X86     := if path_exists("/dev/kvm") == "true" { "kvm" } else { "tcg,thread=multi" }
+CPU_X86       := if path_exists("/dev/kvm") == "true" { "host" } else { "max" }
 
 # ─── Quality ──────────────────────────────────────────────────────────────────
 
@@ -56,9 +60,13 @@ format-check:
 test:
     cargo test
 
-# Generate and serve Rustdoc locally
+# Generate Rustdoc
 doc:
     cargo doc --no-deps
+    @echo "✅ Documentation generated in target/doc/"
+
+# Generate and serve Rustdoc locally on http://localhost:8085
+doc-serve: doc
     @echo "Lancement du serveur de doc sur http://localhost:8085"
     python3 -m http.server --directory target/doc 8085
 
@@ -75,11 +83,11 @@ install-hooks:
 build target=TARGET:
     cargo build --release --target {{target}}
 
-# Build ARM64 via Distrobox (local dev on x86)
+# Build ARM64 (auto-detects: native cross > Distrobox > podman/docker)
 build-arm:
-    distrobox enter genesis-lab -- cargo build --release --target {{ARM_TARGET}}
+    scripts/build-arm.sh {{ARM_TARGET}}
 
-# Build ARM64 natively (for CI runners)
+# Build ARM64 natively (for CI runners with native aarch64)
 build-arm-native target=ARM_TARGET:
     cargo build --release --target {{target}}
 
@@ -109,23 +117,23 @@ provision-raspbian: provision-setup
 
 # Boot Debian VM (headless, port 22221)
 boot-debian:
-    qemu-system-x86_64 -m 2G -smp 2 -daemonize -cpu max -display none \
-        -accel tcg,thread=multi \
+    qemu-system-x86_64 -m 2G -smp 2 -daemonize -cpu {{CPU_X86}} -display none \
+        -accel {{ACCEL_X86}} \
         -device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22221-:22 \
         -drive file={{E2E_DIR}}/debian-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
         -drive file={{E2E_DIR}}/cloud-init/seed.iso,format=raw,if=virtio,readonly=on \
         -device virtio-rng-pci
-    @echo "Debian booted (Port 22221)."
+    @echo "Debian booted (Port 22221, accel={{ACCEL_X86}})."
 
 # Boot Arch Linux VM (headless, port 22222)
 boot-arch:
-    qemu-system-x86_64 -m 2G -smp 2 -daemonize -cpu max -display none \
-        -accel tcg,thread=multi \
+    qemu-system-x86_64 -m 2G -smp 2 -daemonize -cpu {{CPU_X86}} -display none \
+        -accel {{ACCEL_X86}} \
         -device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::22222-:22 \
         -drive file={{E2E_DIR}}/arch-test.qcow2,format=qcow2,if=virtio,cache=unsafe \
         -drive file={{E2E_DIR}}/cloud-init/seed.iso,format=raw,if=virtio,readonly=on \
         -device virtio-rng-pci
-    @echo "Arch Linux booted (Port 22222)."
+    @echo "Arch Linux booted (Port 22222, accel={{ACCEL_X86}})."
 
 # Boot Raspbian VM ARM64 (headless, port 22223)
 boot-raspbian:
@@ -166,16 +174,16 @@ wait-ssh PORT:
     scripts/wait-ssh.sh {{PORT}}
 
 # Run E2E test cycle for one OS (boot -> deploy detect -> clean)
-ci-test os PORT target build="true":
-    scripts/ci-test.sh {{os}} {{PORT}} {{target}} "{{build}}"
+ci-test os PORT target skip_build="false":
+    scripts/ci-test.sh {{os}} {{PORT}} {{target}} "{{skip_build}}"
 
 # Run the full local CI suite (all 3 distros, sequential)
 ci-local: build build-arm provision-vms
     @echo "=== STARTING LOCAL CI TEST SUITE ==="
     just clean-vms
-    just ci-test debian 22221 {{TARGET}}
-    just ci-test arch 22222 {{TARGET}}
-    just ci-test raspbian 22223 {{ARM_TARGET}}
+    just ci-test debian 22221 {{TARGET}} true
+    just ci-test arch 22222 {{TARGET}} true
+    just ci-test raspbian 22223 {{ARM_TARGET}} true
     @echo "=== LOCAL CI TEST SUITE COMPLETED ==="
 
 # Benchmark boot + bootstrap on a specific OS
