@@ -18,6 +18,16 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - name: Cache cargo registry & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-quality-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-quality-
+
       - name: Install Just
         uses: extractions/setup-just@v2
 
@@ -38,7 +48,7 @@ jobs:
 
       - name: Security audit
         run: |
-          cargo install cargo-audit --locked || true
+          cargo install cargo-audit --locked 2>/dev/null || true
           cargo audit
 
   build:
@@ -52,6 +62,16 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-unknown-linux-musl, aarch64-unknown-linux-musl
+
+      - name: Cache cargo registry & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-build-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-build-
           
       - name: Install Cross-Linker
         run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu musl-tools
@@ -100,6 +120,9 @@ jobs:
 
       - name: Fix binary permissions
         run: find target -name genesis-rs -type f -exec chmod +x {} \;
+
+      - name: Enable KVM
+        run: sudo chmod 666 /dev/kvm
 
       - name: Install Dependencies
         run: |
