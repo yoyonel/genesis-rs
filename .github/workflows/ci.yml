@@ -30,6 +30,8 @@ jobs:
 
       - name: Lint (Rust + CI + Actions)
         run: just lint
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Run tests
         run: just test
