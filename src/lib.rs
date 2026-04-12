@@ -16,14 +16,17 @@
 //! }
 //! ```
 
+pub mod config;
 pub mod executor;
 pub mod platform;
 
 /// Point d'entrée pour la logique métier du bootstrap.
 pub mod app {
+    use crate::config::{self, Config};
     use crate::executor::{CommandExecutor, DryRunExecutor};
     use crate::platform::{get_platform, get_platform_with_executor};
     use anyhow::{Context, Result};
+    use std::path::Path;
 
     fn resolve_platform(dry_run: bool) -> Result<Box<dyn crate::platform::SystemPlatform>> {
         if dry_run {
@@ -36,11 +39,19 @@ pub mod app {
     }
 
     /// Exécute l'action principale (détection ou bootstrap).
-    pub fn run_bootstrap(dry_run: bool) -> Result<()> {
+    pub fn run_bootstrap(dry_run: bool, config_path: Option<&Path>) -> Result<()> {
         let platform = resolve_platform(dry_run)?;
 
+        let cfg =
+            config::load_config(config_path.unwrap_or(Path::new(config::DEFAULT_CONFIG_PATH)))?;
+
+        let platform_packages = get_platform_packages(&cfg, &platform.display_name());
+
         platform.print_summary();
-        platform.bootstrap()?;
+        platform.update_system()?;
+        for pkg in &platform_packages {
+            platform.install_package(pkg)?;
+        }
 
         Ok(())
     }
@@ -52,5 +63,21 @@ pub mod app {
         platform.print_summary();
 
         Ok(())
+    }
+
+    /// Merge common + platform-specific packages from config.
+    fn get_platform_packages(cfg: &Config, display_name: &str) -> Vec<String> {
+        let mut packages = cfg.packages.common.clone();
+        let extra = if display_name.contains("Debian") {
+            &cfg.packages.debian
+        } else if display_name.contains("Arch") {
+            &cfg.packages.arch
+        } else if display_name.contains("Raspberry") {
+            &cfg.packages.raspbian
+        } else {
+            return packages;
+        };
+        packages.extend(extra.iter().cloned());
+        packages
     }
 }

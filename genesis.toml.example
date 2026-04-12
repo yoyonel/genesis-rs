@@ -1,0 +1,16 @@
+# genesis-rs configuration
+# Customize package lists per platform.
+# If this file is absent, built-in defaults are used.
+
+[packages]
+# Packages installed on all platforms
+common = ["git", "curl", "vim", "htop"]
+
+# Additional packages for Debian
+debian = []
+
+# Additional packages for Arch Linux
+arch = []
+
+# Additional packages for Raspberry Pi OS
+raspbian = []

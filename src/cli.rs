@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 
 /// Command Line Interface root structure.
 #[derive(Parser, Debug)]
@@ -11,6 +12,10 @@ pub struct Cli {
     /// Preview commands without executing them
     #[arg(long, global = true)]
     pub dry_run: bool,
+
+    /// Path to TOML configuration file
+    #[arg(long, global = true)]
+    pub config: Option<PathBuf>,
 }
 
 /// Available subcommands for genesis-rs.
