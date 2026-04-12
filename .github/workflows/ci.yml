@@ -8,7 +8,7 @@ on:
 
 jobs:
   quality:
-    name: Quality Gate (fmt, lint, test, audit)
+    name: Quality Gate (fmt, lint, test)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,9 +46,24 @@ jobs:
       - name: Run tests
         run: just test
 
-      - name: Security audit
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo-audit binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: cargo-audit-${{ runner.os }}-v1
+
+      - name: Run cargo audit
         run: |
-          cargo install cargo-audit --locked 2>/dev/null || true
+          command -v cargo-audit >/dev/null 2>&1 || cargo install cargo-audit --locked
           cargo audit
 
   build:
