@@ -109,6 +109,25 @@ Le bootstrap exécute des opérations **CPU-intensives** dans la VM :
 - **Décompression** : chaque paquet est décompressé (zstd/xz) — opérations de manipulation de bits massivement utilisées.
 - **I/O disque** : toutes les écritures passent par la couche d'émulation QEMU → overlay qcow2 → hôte.
 
+### Version de QEMU : impact réel sur les performances
+
+On pourrait penser qu'une version plus récente de QEMU améliorerait significativement les performances. En pratique, l'impact est **négligeable** pour notre cas d'usage.
+
+**Contexte** : Debian 13 (trixie) fournit QEMU 10.0.8. La dernière stable upstream est 10.2.2 (mars 2026). Les [changelogs QEMU](https://www.qemu.org/docs/master/about/changelog.html) entre ces versions montrent des corrections de bugs, des améliorations de compatibilité matérielle, et des optimisations TCG incrémentales (~2-5%).
+
+| Scénario | Gain estimé QEMU 10.0 → 10.2 | Pourquoi |
+|:---|:---|:---|
+| **x86_64 + KVM** | **~0%** | QEMU n'est pas dans le chemin critique. Le CPU exécute directement le code guest via [VT-x](https://www.kernel.org/doc/html/latest/virt/kvm/index.html). QEMU ne fait que le setup et l'I/O virtio |
+| **ARM64 + TCG** | **~2-5%** | Les améliorations TCG entre versions mineures sont incrémentales. Le bottleneck est fondamentalement la traduction binaire cross-arch, pas un bug de perf |
+
+**Coût de la mise à jour** : compiler QEMU from source (~30 min de build, ~200 dépendances) ou utiliser un backport/PPA, avec un risque de casse et une charge de maintenance pour un gain marginal.
+
+**Vrai levier de performance pour ARM64** : utiliser un hôte ARM64 natif (Raspberry Pi 5, Apple Silicon via [UTM](https://mac.getutm.app/), [Ampere Altra](https://amperecomputing.com/), CI GitHub avec runner `ubuntu-24.04-arm`) pour éliminer le TCG et basculer sur KVM ARM. Gain attendu : **5-7x** vs le TCG cross-arch actuel.
+
+**Conclusion** : rester sur la version QEMU du package manager de la distro. Les gains significatifs viennent de l'activation de KVM (10-20x), pas de la version de QEMU.
+
+Releases : <https://www.qemu.org/download/>
+
 ### Comment le script choisit
 
 [`scripts/boot-vm.sh`](../scripts/boot-vm.sh) teste l'accès à `/dev/kvm` :
