@@ -17,16 +17,18 @@ Repository: [yoyonel/genesis-rs](https://github.com/yoyonel/genesis-rs).
 ## Architecture
 
 - Trait `SystemPlatform` with impls per distro (Debian, Arch, Raspbian).
-- `CommandExecutor` trait for testability (mock system calls).
-- CLI via clap derive in `src/cli.rs`.
+- `CommandExecutor` trait for testability (real, dry-run, mock).
+- `Config` loaded from TOML (`genesis.toml`) for per-platform package lists.
+- CLI via clap derive in `src/cli.rs` (global flags: `--dry-run`, `--config`).
+- Structured logging via `tracing` (stderr, controlled by `RUST_LOG`).
 - Build targets: `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl`.
-- E2E: QEMU Cloud VMs + Cloud-Init + SSH-based deploy.
+- E2E: QEMU Cloud VMs + Cloud-Init + SSH-based deploy + SHA checksum verification.
 
 ## Build & Test
 
 ```bash
 just check          # Compile check
-just test           # Unit + integration tests
+just test           # Unit + integration tests (37 tests)
 just lint           # clippy + actionlint + format-check
 just format         # cargo fmt
 just build          # Release build (x86_64)
@@ -35,26 +37,10 @@ just ci-test <os>   # Full E2E cycle (debian|arch|raspbian)
 just benchmark <os> # Benchmark with metrics
 ```
 
-## Code Style
+## Detailed Rules (see instruction files)
 
-- Rust 2024 edition. Follow standard `rustfmt` and `clippy` conventions.
-- Zero clippy warnings (`-D warnings`).
-- Prefer `anyhow::Result` for error propagation.
-- No `unwrap()` in library code — only in tests.
+The following instruction files contain the authoritative, detailed rules. **Do not duplicate their content here.**
 
-## Justfile Philosophy
-
-Keep Justfile recipes as **thin entry points**. Any recipe exceeding ~5 lines of shell MUST be extracted to `scripts/*.sh`. The Justfile should read like a table of contents, not contain business logic.
-
-## Commit Conventions
-
-**Separation of Concerns (SoC) is mandatory.** Never mix different concerns in one commit:
-- `feat:` for application code
-- `fix:` for bug fixes
-- `refactor:` for restructuring
-- `docs:` for documentation
-- `ci:` for CI/CD workflows
-- `test:` for test additions/changes
-- `chore:` for tooling, scripts, dependencies
-
-**Never `git push` without explicit user authorization.**
+- **[commit-workflow.instructions.md](instructions/commit-workflow.instructions.md)** — SoC commit discipline, Agile workflow, branching strategy, git safety rules.
+- **[testing-quality.instructions.md](instructions/testing-quality.instructions.md)** — CI validation, test coverage, code quality standards, Justfile discipline, **documentation gates**.
+- **[github-project.instructions.md](instructions/github-project.instructions.md)** — PR workflow, labels, milestones, project board management.
