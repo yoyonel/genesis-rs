@@ -69,7 +69,7 @@
 
 ---
 
-## 5. CI/CD — Note : B+ (était B-)
+## 5. CI/CD — Note : A- (était B+)
 
 ### Points forts
 - Pipeline fonctionnel : build multi-arch → E2E sur 3 distros en parallèle.
@@ -82,12 +82,12 @@
 - ✅ Wall-clock réduit de 6m33s → 4m01s (-40%) grâce à la parallélisation.
 - ✅ KVM activé sur les runners CI (`sudo chmod 666 /dev/kvm`).
 - ✅ SSH key injection dynamique et idempotente.
+- ✅ MSRV 1.85.0 défini + matrice Rust (stable + MSRV) dans Quality Gate.
+- ✅ Release workflow : tags `v*` → binaires x86_64 + aarch64 dans GitHub Releases.
+- ✅ Required status checks sur master (Quality Gate × 2, Security Audit, Build).
 
 ### Points faibles (restants)
-- Pas de matrice de versions Rust (MSRV non défini).
 - Pas de SBOM ni scan de sécurité avancé.
-- Pas de release workflow (pas de tags, pas de binaires publiés).
-- Pas de PR checks requis (required status checks) sur master.
 
 ---
 
@@ -163,5 +163,6 @@
 - [ ] Mode dry-run
 - [ ] Config TOML pour la liste de paquets
 - [ ] Gestion PID des VMs (remplacer `killall`)
-- [ ] MSRV défini + matrice Rust en CI
-- [ ] Release workflow (tags → binaires GitHub)
+- [x] MSRV 1.85.0 + matrice Rust en CI (PR #15)
+- [x] Release workflow tags → binaires GitHub (PR #15)
+- [x] Required status checks sur master (PR #15)
