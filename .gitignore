@@ -6,3 +6,4 @@ tests/e2e/**/*.iso
 /tests/e2e/qemu.log
 tests/e2e/**/*.fd
 tests/e2e/**/*.log
+tests/e2e/pids/
