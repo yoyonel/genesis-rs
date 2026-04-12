@@ -10,8 +10,6 @@ use os_info::{Info, Type};
 use sysinfo::{Disks, System};
 
 pub mod arch;
-pub mod debian;
-pub mod raspbian;
 
 /// Default essential packages installed during bootstrap.
 pub const ESSENTIAL_PACKAGES: &[&str] = &["git", "curl", "vim", "htop"];
@@ -80,42 +78,66 @@ pub trait SystemPlatform {
 ///
 /// Factored out to avoid code duplication between Debian and Raspbian,
 /// which share the same package manager and command structure.
-pub(crate) fn apt_update_system(executor: &dyn CommandExecutor) -> Result<()> {
-    println!("Updating system packages via apt...");
-    executor.execute(
-        "sudo",
-        &["DEBIAN_FRONTEND=noninteractive", "apt-get", "update"],
-    )?;
-    executor.execute(
-        "sudo",
-        &[
-            "DEBIAN_FRONTEND=noninteractive",
-            "apt-get",
-            "upgrade",
-            "-y",
-            "-o",
-            "Dpkg::Options::=--force-confold",
-        ],
-    )?;
-    Ok(())
+/// Only `display_name` differs between the two.
+pub struct AptPlatform {
+    /// Display name prefix (e.g., "Debian", "Raspberry Pi OS").
+    pub name: &'static str,
+    /// Version string (e.g., "12").
+    pub version: String,
+    /// Command executor (real or mock).
+    pub executor: Box<dyn CommandExecutor>,
 }
 
-/// Common implementation for apt-based package installation.
-pub(crate) fn apt_install_package(executor: &dyn CommandExecutor, name: &str) -> Result<()> {
-    println!("Installing package '{}' via apt...", name);
-    executor.execute(
-        "sudo",
-        &[
-            "DEBIAN_FRONTEND=noninteractive",
-            "apt-get",
-            "install",
-            "-y",
-            "-o",
-            "Dpkg::Options::=--force-confold",
-            name,
-        ],
-    )?;
-    Ok(())
+impl SystemPlatform for AptPlatform {
+    fn display_name(&self) -> String {
+        format!("{} {}", self.name, self.version)
+    }
+
+    fn update_system(&self) -> Result<()> {
+        println!("Updating system packages via apt...");
+        self.executor.execute(
+            "sudo",
+            &["DEBIAN_FRONTEND=noninteractive", "apt-get", "update"],
+        )?;
+        self.executor.execute(
+            "sudo",
+            &[
+                "DEBIAN_FRONTEND=noninteractive",
+                "apt-get",
+                "upgrade",
+                "-y",
+                "-o",
+                "Dpkg::Options::=--force-confold",
+            ],
+        )?;
+        Ok(())
+    }
+
+    fn install_package(&self, name: &str) -> Result<()> {
+        println!("Installing package '{}' via apt...", name);
+        self.executor.execute(
+            "sudo",
+            &[
+                "DEBIAN_FRONTEND=noninteractive",
+                "apt-get",
+                "install",
+                "-y",
+                "-o",
+                "Dpkg::Options::=--force-confold",
+                name,
+            ],
+        )?;
+        Ok(())
+    }
+
+    fn bootstrap(&self) -> Result<()> {
+        println!("Bootstrapping {}...", self.display_name());
+        self.update_system()?;
+        for pkg in ESSENTIAL_PACKAGES {
+            self.install_package(pkg)?;
+        }
+        Ok(())
+    }
 }
 
 /// Détecte l'OS actuel et retourne une implémentation de [`SystemPlatform`].
@@ -134,9 +156,17 @@ fn detect_from_info(
 ) -> Option<Box<dyn SystemPlatform>> {
     let version = info.version().to_string();
     match info.os_type() {
-        Type::Debian => Some(Box::new(debian::Debian { version, executor })),
+        Type::Debian => Some(Box::new(AptPlatform {
+            name: "Debian",
+            version,
+            executor,
+        })),
         Type::Arch => Some(Box::new(arch::Arch { version, executor })),
-        Type::Raspbian => Some(Box::new(raspbian::Raspbian { version, executor })),
+        Type::Raspbian => Some(Box::new(AptPlatform {
+            name: "Raspberry Pi OS",
+            version,
+            executor,
+        })),
         _ => None,
     }
 }
@@ -148,6 +178,23 @@ mod tests {
 
     fn mock_executor() -> Box<dyn CommandExecutor> {
         Box::new(MockExecutor::new())
+    }
+
+    fn make_apt(name: &'static str) -> AptPlatform {
+        AptPlatform {
+            name,
+            version: "12".to_string(),
+            executor: mock_executor(),
+        }
+    }
+
+    fn apt_calls(platform: &AptPlatform) -> Vec<(String, Vec<String>)> {
+        let mock = platform
+            .executor
+            .as_any()
+            .downcast_ref::<MockExecutor>()
+            .unwrap();
+        mock.calls.borrow().clone()
     }
 
     #[test]
@@ -176,5 +223,90 @@ mod tests {
         let info = Info::with_type(Type::Windows);
         let platform = detect_from_info(&info, mock_executor());
         assert!(platform.is_none());
+    }
+
+    // --- AptPlatform tests ---
+
+    #[test]
+    fn test_apt_display_name_debian() {
+        let apt = make_apt("Debian");
+        assert_eq!(apt.display_name(), "Debian 12");
+    }
+
+    #[test]
+    fn test_apt_display_name_raspbian() {
+        let apt = make_apt("Raspberry Pi OS");
+        assert_eq!(apt.display_name(), "Raspberry Pi OS 12");
+    }
+
+    #[test]
+    fn test_apt_update_system() {
+        let apt = make_apt("Debian");
+        apt.update_system().unwrap();
+
+        let calls = apt_calls(&apt);
+        assert_eq!(calls.len(), 2);
+        assert!(calls[0].1.contains(&"apt-get".to_string()));
+        assert!(calls[0].1.contains(&"update".to_string()));
+        assert!(calls[1].1.contains(&"upgrade".to_string()));
+    }
+
+    #[test]
+    fn test_apt_install_package() {
+        let apt = make_apt("Debian");
+        apt.install_package("htop").unwrap();
+
+        let calls = apt_calls(&apt);
+        assert_eq!(calls.len(), 1);
+        assert!(calls[0].1.contains(&"install".to_string()));
+        assert!(calls[0].1.contains(&"htop".to_string()));
+    }
+
+    #[test]
+    fn test_apt_bootstrap_installs_all_essentials() {
+        let apt = make_apt("Debian");
+        apt.bootstrap().unwrap();
+
+        let calls = apt_calls(&apt);
+        // 2 (update+upgrade) + 4 essentials = 6
+        assert_eq!(calls.len(), 2 + ESSENTIAL_PACKAGES.len());
+    }
+
+    #[test]
+    fn test_apt_update_failure_propagates() {
+        let mock = MockExecutor::new();
+        mock.set_fail_on("apt-get update");
+        let apt = AptPlatform {
+            name: "Debian",
+            version: "12".to_string(),
+            executor: Box::new(mock),
+        };
+        assert!(apt.update_system().is_err());
+    }
+
+    #[test]
+    fn test_apt_install_failure_propagates() {
+        let mock = MockExecutor::new();
+        mock.set_fail_on("install");
+        let apt = AptPlatform {
+            name: "Debian",
+            version: "12".to_string(),
+            executor: Box::new(mock),
+        };
+        assert!(apt.install_package("broken-pkg").is_err());
+    }
+
+    #[test]
+    fn test_apt_bootstrap_stops_on_update_failure() {
+        let mock = MockExecutor::new();
+        mock.set_fail_on("apt-get update");
+        let apt = AptPlatform {
+            name: "Debian",
+            version: "12".to_string(),
+            executor: Box::new(mock),
+        };
+        assert!(apt.bootstrap().is_err());
+        let calls = apt_calls(&apt);
+        assert_eq!(calls.len(), 1);
     }
 }
