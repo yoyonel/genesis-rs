@@ -20,6 +20,11 @@ impl SystemPlatform for Arch {
     }
 
     fn update_system(&self) -> Result<()> {
+        println!("Refreshing pacman keyring...");
+        self.executor
+            .execute("sudo", &["pacman-key", "--init"])?;
+        self.executor
+            .execute("sudo", &["pacman-key", "--populate", "archlinux"])?;
         println!("Updating system packages via pacman...");
         self.executor
             .execute("sudo", &["pacman", "-Syu", "--noconfirm"])?;
@@ -78,9 +83,13 @@ mod tests {
         arch.update_system().unwrap();
 
         let calls = arch.executor_calls();
-        assert_eq!(calls.len(), 1);
-        assert!(calls[0].1.contains(&"pacman".to_string()));
-        assert!(calls[0].1.contains(&"-Syu".to_string()));
+        assert_eq!(calls.len(), 3);
+        assert!(calls[0].1.contains(&"pacman-key".to_string()));
+        assert!(calls[0].1.contains(&"--init".to_string()));
+        assert!(calls[1].1.contains(&"pacman-key".to_string()));
+        assert!(calls[1].1.contains(&"--populate".to_string()));
+        assert!(calls[2].1.contains(&"pacman".to_string()));
+        assert!(calls[2].1.contains(&"-Syu".to_string()));
     }
 
     #[test]
@@ -100,8 +109,8 @@ mod tests {
         arch.bootstrap().unwrap();
 
         let calls = arch.executor_calls();
-        // 1 (pacman -Syu) + 4 essentials = 5
-        assert_eq!(calls.len(), 1 + ESSENTIAL_PACKAGES.len());
+        // 2 (pacman-key) + 1 (pacman -Syu) + 4 essentials = 7
+        assert_eq!(calls.len(), 3 + ESSENTIAL_PACKAGES.len());
     }
 
     #[test]
