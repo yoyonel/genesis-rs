@@ -146,6 +146,30 @@ clean-vms:
 status-vms:
     scripts/status-vms.sh {{E2E_DIR}}
 
+# Bootstrap Debian and open interactive shell (build → boot → deploy → ssh)
+try-debian reset="": (build TARGET)
+    scripts/try-vm.sh debian 22221 {{TARGET}} {{E2E_DIR}} {{reset}}
+
+# Bootstrap Arch and open interactive shell (build → boot → deploy → ssh)
+try-arch reset="": (build TARGET)
+    scripts/try-vm.sh arch 22222 {{TARGET}} {{E2E_DIR}} {{reset}}
+
+# Bootstrap Raspbian ARM64 and open interactive shell (build → boot → deploy → ssh)
+try-raspbian reset="": (build ARM_TARGET)
+    scripts/try-vm.sh raspbian 22223 {{ARM_TARGET}} {{E2E_DIR}} {{reset}} --arm64
+
+# SSH into a running Debian VM
+ssh-debian:
+    ssh {{SSH_OPTS}} -p 22221 -t genesis@localhost
+
+# SSH into a running Arch VM
+ssh-arch:
+    ssh {{SSH_OPTS}} -p 22222 -t genesis@localhost
+
+# SSH into a running Raspbian VM
+ssh-raspbian:
+    ssh {{SSH_OPTS}} -p 22223 -t genesis@localhost
+
 # Reset a single VM overlay to pristine state (idempotent boot)
 reset-overlay os:
     scripts/reset-overlay.sh {{os}} {{E2E_DIR}}
