@@ -97,18 +97,51 @@ just lint           # Clippy + actionlint + vérification GitHub Actions
 just format         # Formater le code (cargo fmt)
 just doc            # Générer la documentation Rustdoc
 
-just boot-debian    # Démarrer une VM Debian (port SSH 22221)
-just boot-arch      # Démarrer une VM Arch (port SSH 22222)
-just boot-raspbian  # Démarrer une VM Raspbian ARM64 (port SSH 22223)
-just deploy-debian  # Déployer et lancer bootstrap sur Debian
-just status-vms     # Afficher l'état des VMs (running/stale)
-just clean-vms      # Arrêter toutes les VMs (PID-based, safe)
+just try-debian          # Build + boot + bootstrap + shell interactif sur Debian
+just try-debian --reset  # Idem, avec overlay remis à zéro (VM vierge)
+just try-arch            # Idem sur Arch
+just try-raspbian        # Idem sur Raspbian ARM64
 
-just ci-local       # Pipeline CI complet en local (3 distros)
-just benchmark      # Mesurer les performances de boot/deploy
+just ssh-debian          # SSH sur une VM Debian déjà lancée
+just ssh-arch            # SSH sur une VM Arch déjà lancée
+just ssh-raspbian        # SSH sur une VM Raspbian déjà lancée
+
+just boot-debian         # Démarrer une VM Debian (port SSH 22221)
+just boot-arch           # Démarrer une VM Arch (port SSH 22222)
+just boot-raspbian       # Démarrer une VM Raspbian ARM64 (port SSH 22223)
+just deploy-debian       # Déployer et lancer bootstrap sur Debian
+just status-vms          # Afficher l'état des VMs (running/stale)
+just clean-vms           # Arrêter toutes les VMs (PID-based, safe)
+
+just ci-local            # Pipeline CI complet en local (3 distros)
+just benchmark           # Mesurer les performances de boot/deploy
 
 just --list         # Voir toutes les recettes disponibles
 ```
+
+### 4. Tester le bootstrap sur une VM
+
+La commande `just try-*` effectue tout le cycle : compilation, boot VM, déploiement, bootstrap, puis ouvre un shell interactif sur la VM bootstrappée :
+
+```bash
+# Tester sur Debian (réutilise l'overlay existant)
+just try-debian
+
+# Tester sur Debian avec VM vierge (idempotent)
+just try-debian --reset
+
+# Tester sur Arch / Raspbian
+just try-arch --reset
+just try-raspbian --reset
+```
+
+Une fois dans le shell, `genesis-rs` est disponible à `/tmp/genesis-rs`. Taper `exit` pour quitter — la VM reste en vie. Pour se reconnecter :
+
+```bash
+just ssh-debian     # Reconnexion simple à une VM déjà lancée
+```
+
+Pour arrêter les VMs : `just clean-vms`.
 
 > Pour le détail du pipeline E2E (Cloud-Init, QEMU, benchmarks), voir **[VM_SETUP.md](VM_SETUP.md)**.
 
@@ -235,6 +268,8 @@ genesis-rs/
 │   ├── benchmark.sh          # Benchmark boot + bootstrap
 │   ├── clean-vms.sh          # Arrêt de toutes les VMs via PID files
 │   ├── status-vms.sh         # Affichage de l'état des VMs (running/stale)
+│   ├── try-vm.sh             # Workflow complet : build → boot → deploy → bootstrap → shell
+│   ├── reset-overlay.sh      # Reset overlay VM à l'état pristine
 │   └── provision-setup.sh    # Génération de clé SSH E2E (idempotent)
 ├── genesis.toml.example      # Exemple de configuration TOML
 ├── .github/
