@@ -68,22 +68,25 @@
 
 ---
 
-## 5. CI/CD — Note : B-
+## 5. CI/CD — Note : B+ (était B-)
 
 ### Points forts
 - Pipeline fonctionnel : build multi-arch → E2E sur 3 distros en parallèle.
 - Cache des images QEMU.
 - Workflow docs séparé pour GitHub Pages.
 - Timeout de 15 min sur les jobs E2E.
+- ✅ Quality Gate : `cargo fmt --check`, `clippy -D warnings`, `cargo test`, `actionlint`.
+- ✅ Security Audit : `cargo audit` dans un job parallèle avec cache du binaire.
+- ✅ Pipeline parallélisé : audit en parallèle de quality, E2E en parallèle par distro.
+- ✅ Wall-clock réduit de 6m33s → 4m01s (-40%) grâce à la parallélisation.
+- ✅ KVM activé sur les runners CI (`sudo chmod 666 /dev/kvm`).
+- ✅ SSH key injection dynamique et idempotente.
 
-### Points faibles
-- Pas de job lint dans la CI. Clippy et fmt ne sont vérifiés que localement (pre-commit hook). Un commit direct sur master bypasse tout.
-- Pas de job test (`cargo test`) dans la CI. Les tests unitaires ne tournent nulle part en CI.
+### Points faibles (restants)
 - Pas de matrice de versions Rust (MSRV non défini).
-- Pas de `cargo audit` pour les vulnérabilités des dépendances.
-- Pas de SBOM ni scan de sécurité.
+- Pas de SBOM ni scan de sécurité avancé.
 - Pas de release workflow (pas de tags, pas de binaires publiés).
-- Pas de PR checks : le workflow ne tourne que sur push et pull_request sur master mais sans checks requis.
+- Pas de PR checks requis (required status checks) sur master.
 
 ---
 
@@ -108,7 +111,7 @@
 | Fonctionnel | Vérifier les messages d'erreur (OS non supporté, commande manquante) | `assert_cmd` | P1 |
 | E2E | `bootstrap` sur 3 distros (seul `detect` était testé) | QEMU existant, ajouter `bootstrap` dans la matrice CI | P1 |
 | E2E | Vérifier post-bootstrap que les paquets sont bien installés | SSH + `dpkg -l` / `pacman -Q` après bootstrap | P2 |
-| Sécurité | `cargo audit` dans CI | GitHub Action `rustsec/audit-check` | P0 |
+| Sécurité | `cargo audit` dans CI | ✅ Fait — job Security Audit parallèle avec cache | P0 |
 | Mutation | Valider la robustesse des tests | `cargo-mutants` | P3 |
 
 ---
@@ -145,6 +148,10 @@
 - [x] CI : KVM activé sur runners (`sudo chmod 666 /dev/kvm`), cargo cache
 - [x] Documentation complète : `README.md`, `VM_SETUP.md` réécrits
 - [x] E2E validé sur 3 distros (Debian, Arch, Raspbian ARM64)
+- [x] Fix SSH key mismatch en CI (placeholder dynamique + injection idempotente)
+- [x] CI parallélisée : Security Audit en job séparé, cargo-audit caché (~6m33s → ~4m01s)
+- [x] Copilot instructions : `.github/copilot-instructions.md` + 3 fichiers dans `.github/instructions/`
+- [x] GitHub project management : labels, milestones, issues, project board
 
 ### Phases 2-4 — À faire (futures PRs)
 
