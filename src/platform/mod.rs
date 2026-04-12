@@ -172,6 +172,14 @@ pub fn get_platform() -> Option<Box<dyn SystemPlatform>> {
     detect_from_info(&info, Box::new(executor))
 }
 
+/// Détecte l'OS actuel avec un executor personnalisé (ex: dry-run).
+pub fn get_platform_with_executor(
+    executor: Box<dyn CommandExecutor>,
+) -> Option<Box<dyn SystemPlatform>> {
+    let info = os_info::get();
+    detect_from_info(&info, executor)
+}
+
 /// Logique de détection à partir des informations système de `os_info`.
 fn detect_from_info(
     info: &Info,

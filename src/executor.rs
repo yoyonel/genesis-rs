@@ -55,6 +55,33 @@ impl CommandExecutor for RealExecutor {
     }
 }
 
+/// Dry-run executor that logs commands without executing them.
+///
+/// Used with `--dry-run` CLI flag to preview what bootstrap would do.
+pub struct DryRunExecutor;
+
+impl CommandExecutor for DryRunExecutor {
+    fn execute(&self, program: &str, args: &[&str]) -> Result<()> {
+        println!("[dry-run] {} {}", program, args.join(" "));
+        Ok(())
+    }
+
+    fn execute_with_env(&self, program: &str, args: &[&str], env: &[(&str, &str)]) -> Result<()> {
+        let env_str: Vec<String> = env.iter().map(|(k, v)| format!("{k}={v}")).collect();
+        println!(
+            "[dry-run] {} {} {}",
+            env_str.join(" "),
+            program,
+            args.join(" ")
+        );
+        Ok(())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
