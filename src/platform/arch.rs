@@ -2,7 +2,7 @@
 //!
 //! Support pour Arch Linux utilisant le gestionnaire de paquets `pacman`.
 
-use super::{ESSENTIAL_PACKAGES, SystemPlatform};
+use super::{ESSENTIAL_PACKAGES, SystemPlatform, validate_package_name};
 use crate::executor::CommandExecutor;
 use anyhow::Result;
 
@@ -31,6 +31,7 @@ impl SystemPlatform for Arch {
     }
 
     fn install_package(&self, name: &str) -> Result<()> {
+        validate_package_name(name)?;
         println!("Installing package '{}' via pacman...", name);
         self.executor
             .execute("sudo", &["pacman", "-S", "--noconfirm", name])?;
@@ -134,5 +135,13 @@ mod tests {
         mock.set_fail_on("broken-pkg");
         let arch = make_arch(mock);
         assert!(arch.install_package("broken-pkg").is_err());
+    }
+
+    #[test]
+    fn test_install_rejects_invalid_name() {
+        let arch = make_arch(MockExecutor::new());
+        assert!(arch.install_package("valid-pkg").is_ok());
+        assert!(arch.install_package("evil; rm -rf /").is_err());
+        assert!(arch.install_package("").is_err());
     }
 }

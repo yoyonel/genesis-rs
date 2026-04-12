@@ -5,7 +5,7 @@
 //! implémenté par chaque OS supporté.
 
 use crate::executor::{CommandExecutor, RealExecutor};
-use anyhow::Result;
+use anyhow::{Result, bail};
 use os_info::{Info, Type};
 use sysinfo::{Disks, System};
 
@@ -13,6 +13,29 @@ pub mod arch;
 
 /// Default essential packages installed during bootstrap.
 pub const ESSENTIAL_PACKAGES: &[&str] = &["git", "curl", "vim", "htop"];
+
+/// Validate a package name against a strict whitelist of allowed characters.
+///
+/// Accepts names matching the pattern used by both dpkg and pacman:
+/// alphanumeric, plus `.`, `+`, `-`. Must be non-empty and at most 256 chars.
+pub fn validate_package_name(name: &str) -> Result<()> {
+    if name.is_empty() {
+        bail!("Package name must not be empty");
+    }
+    if name.len() > 256 {
+        bail!("Package name too long (max 256 chars): {}", name);
+    }
+    if !name
+        .bytes()
+        .all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'+' || b == b'-')
+    {
+        bail!(
+            "Invalid package name (only [a-zA-Z0-9.+-] allowed): {}",
+            name
+        );
+    }
+    Ok(())
+}
 
 /// Interface unifiée pour la gestion des systèmes d'exploitation cibles.
 ///
@@ -114,6 +137,7 @@ impl SystemPlatform for AptPlatform {
     }
 
     fn install_package(&self, name: &str) -> Result<()> {
+        validate_package_name(name)?;
         println!("Installing package '{}' via apt...", name);
         self.executor.execute(
             "sudo",
@@ -308,5 +332,46 @@ mod tests {
         assert!(apt.bootstrap().is_err());
         let calls = apt_calls(&apt);
         assert_eq!(calls.len(), 1);
+    }
+
+    // --- Package name validation tests ---
+
+    #[test]
+    fn test_validate_package_name_valid() {
+        assert!(validate_package_name("git").is_ok());
+        assert!(validate_package_name("lib2to3").is_ok());
+        assert!(validate_package_name("g++").is_ok());
+        assert!(validate_package_name("libc6-dev").is_ok());
+        assert!(validate_package_name("python3.11").is_ok());
+    }
+
+    #[test]
+    fn test_validate_package_name_empty() {
+        let err = validate_package_name("").unwrap_err();
+        assert!(err.to_string().contains("empty"));
+    }
+
+    #[test]
+    fn test_validate_package_name_too_long() {
+        let long_name = "a".repeat(257);
+        let err = validate_package_name(&long_name).unwrap_err();
+        assert!(err.to_string().contains("too long"));
+    }
+
+    #[test]
+    fn test_validate_package_name_rejects_shell_injection() {
+        assert!(validate_package_name("pkg; rm -rf /").is_err());
+        assert!(validate_package_name("pkg && evil").is_err());
+        assert!(validate_package_name("$(malicious)").is_err());
+        assert!(validate_package_name("pkg`cmd`").is_err());
+        assert!(validate_package_name("name with spaces").is_err());
+    }
+
+    #[test]
+    fn test_apt_install_rejects_invalid_name() {
+        let apt = make_apt("Debian");
+        assert!(apt.install_package("valid-pkg").is_ok());
+        assert!(apt.install_package("evil; rm -rf /").is_err());
+        assert!(apt.install_package("").is_err());
     }
 }
