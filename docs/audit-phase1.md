@@ -5,18 +5,19 @@
 
 ---
 
-## 1. Architecture — Note : B
+## 1. Architecture — Note : A- (était B)
 
 ### Points forts
 - Le trait `SystemPlatform` est une bonne abstraction pour supporter plusieurs distros. Le dispatch via `os_info::Type` dans `detect_from_info()` est clean.
 - Séparation correcte : `lib.rs` (logique métier) / `main.rs` (point d'entrée) / `cli.rs` (parsing CLI).
 - Le pattern `Box<dyn SystemPlatform>` permet l'extensibilité.
+- ✅ `AptPlatform` struct partagée : Debian/Raspbian ne sont plus que des constructeurs. Zéro duplication apt.
+- ✅ `ESSENTIAL_PACKAGES` centralisé dans `mod.rs`. `bootstrap()` factorisé dans `AptPlatform`.
 
-### Points faibles
-- **Duplication massive** : `debian.rs` et `raspbian.rs` sont identiques à 95% (même apt-get, même bootstrap, même `install_package`). Il faut extraire un `AptPlatform` commun et ne laisser dans chaque impl que ce qui diverge réellement (`display_name`).
-- `bootstrap()` hardcode la liste de paquets `["git", "curl", "vim", "htop"]` dans chacune des 3 impls. Ça devrait être configurable (fichier TOML/YAML ou au minimum une constante partagée).
-- Pas de logging structuré : tout passe par `println!`. Pour un outil de provisioning, il faut un vrai framework de log (`tracing` ou `env_logger`) avec des niveaux (info, debug, warn, error).
-- Pas de dry-run : aucun moyen de voir ce qui serait exécuté sans l'exécuter. Critique pour un outil qui lance `sudo apt-get`.
+### Points faibles (restants)
+- `bootstrap()` hardcode la liste de paquets. Ça devrait être configurable (fichier TOML/YAML).
+- Pas de logging structuré : tout passe par `println!`.
+- Pas de dry-run : aucun moyen de voir ce qui serait exécuté sans l'exécuter.
 
 ---
 
@@ -155,7 +156,7 @@
 
 ### Phases 2-4 — À faire (futures PRs)
 
-- [ ] Extraire `AptPlatform` partagé (Debian/Raspbian) — réduit encore la duplication
+- [ ] Extraire `AptPlatform` partagé (Debian/Raspbian) — ✅ Fait (PR #14)
 - [ ] Validation/sanitisation des noms de paquets dans `install_package`
 - [ ] Checksum des images QEMU téléchargées
 - [ ] Logging structuré (`tracing`)
