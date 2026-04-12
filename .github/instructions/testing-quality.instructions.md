@@ -52,12 +52,43 @@ After push, monitor CI: `gh run watch` or `gh run list --limit 1`.
 - SSH key injection is dynamic (placeholder in `user-data`, replaced at provision time)
 - Never hardcode keys, passwords, or environment-specific values in committed files
 
-## Documentation Sync (MANDATORY)
+## Documentation (MANDATORY — as important as the code itself)
 
-- `docs/` must be updated in the **same PR** as the code change when:
-  - Architecture changes (new traits, modules, platforms)
-  - New scripts or Justfile recipes added
-  - CI/CD workflow changes
-  - Benchmark methodology or results change
-- `docs/github-settings.md` must reflect any label/milestone/project changes
-- `docs/audit-phase1.md` scoring must be updated when audit items are resolved
+**Documentation is NOT optional. It is a first-class deliverable, as important as — or MORE important than — the code itself.**
+
+### Documentation Gate (blocks PR merge)
+
+A PR is NOT ready for merge unless ALL applicable documentation is included:
+
+1. **README.md** — Must reflect the current state of the project at all times:
+   - CLI flags and subcommands (full `--help` equivalent)
+   - Configuration file format and options
+   - New Justfile recipes
+   - Test count and coverage
+   - Architecture diagrams if structure changed
+2. **API Documentation** — Every public function, trait, struct, and module MUST have rustdoc comments:
+   - `///` on all `pub` items in `src/`
+   - Module-level `//!` docs in every `.rs` file
+   - Usage examples in doc comments for non-trivial APIs
+   - Run `cargo doc --no-deps` and verify no warnings
+3. **Configuration Documentation** — Any config file (TOML, YAML, etc.) must have:
+   - A documented example file with comments explaining every field
+   - A dedicated section in README.md explaining usage, defaults, and override behavior
+4. **Scripts Documentation** — Every script in `scripts/` must have:
+   - A usage comment header (already enforced)
+   - Be listed in README.md project structure if new
+5. **docs/ Folder** — Must be updated in the **same PR** as the code change when:
+   - Architecture changes (new traits, modules, platforms)
+   - New scripts or Justfile recipes added
+   - CI/CD workflow changes
+   - Benchmark methodology or results change
+6. **Changelog** — `docs/github-settings.md` must reflect any label/milestone/project changes
+
+### Documentation Review Checklist
+
+Before marking a PR ready:
+- [ ] `cargo doc --no-deps` builds with zero warnings
+- [ ] README.md sections are up-to-date (features, CLI, config, project structure, test count)
+- [ ] New public APIs have rustdoc with examples
+- [ ] Config files have documented examples
+- [ ] `docs/` updated if architecture/scripts/CI changed
