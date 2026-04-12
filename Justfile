@@ -28,7 +28,7 @@ check:
     cargo check
 
 # Run all linters (Rust + CI workflows + GitHub Actions existence)
-lint: lint-rust lint-ci check-actions
+lint: format-check lint-rust lint-ci check-actions
 
 # Lint Rust code (clippy, zero warnings)
 lint-rust:

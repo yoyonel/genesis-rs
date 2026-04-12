@@ -21,8 +21,7 @@ impl SystemPlatform for Arch {
 
     fn update_system(&self) -> Result<()> {
         println!("Refreshing pacman keyring...");
-        self.executor
-            .execute("sudo", &["pacman-key", "--init"])?;
+        self.executor.execute("sudo", &["pacman-key", "--init"])?;
         self.executor
             .execute("sudo", &["pacman-key", "--populate", "archlinux"])?;
         println!("Updating system packages via pacman...");
