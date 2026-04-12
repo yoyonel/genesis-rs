@@ -12,6 +12,9 @@ if [ "${SKIP_BUILD}" != "true" ]; then
     just build "${TARGET}"
 fi
 
+# Reset overlay to ensure idempotent test run
+scripts/reset-overlay.sh "${OS}"
+
 START_BOOT=$(date +%s%3N)
 just boot-"${OS}"
 scripts/wait-ssh.sh "${PORT}"

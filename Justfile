@@ -143,6 +143,14 @@ clean-vms:
     killall qemu-system-x86_64 qemu-system-aarch64 2>/dev/null || true
     @echo "All VMs terminated."
 
+# Reset a single VM overlay to pristine state (idempotent boot)
+reset-overlay os:
+    scripts/reset-overlay.sh {{os}} {{E2E_DIR}}
+
+# Reset ALL VM overlays to pristine state
+reset-overlays:
+    scripts/reset-overlay.sh all {{E2E_DIR}}
+
 # ─── E2E Testing & CI ────────────────────────────────────────────────────────
 
 # Wait for SSH on a specific port
