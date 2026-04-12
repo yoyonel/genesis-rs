@@ -26,6 +26,12 @@ else
     if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
         ACCEL="kvm"
         CPU="host"
+    else
+        echo "┌─────────────────────────────────────────────────────────────────┐"
+        echo "│  ⚠️  KVM unavailable — falling back to TCG (software emulation) │"
+        echo "│  Boot will be 10-20x slower. Fix: sudo modprobe kvm_intel      │"
+        echo "│  Permanent fix: run 'just setup' for detailed instructions.     │"
+        echo "└─────────────────────────────────────────────────────────────────┘"
     fi
 
     qemu-system-x86_64 -m 2G -smp 2 -daemonize -cpu "${CPU}" -display none \

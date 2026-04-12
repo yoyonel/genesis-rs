@@ -153,6 +153,87 @@ check_file "QEMU AArch64 EFI firmware" \
     "/usr/share/edk2/aarch64/QEMU_EFI.fd" \
     "/usr/share/qemu-efi-aarch64/QEMU_EFI.fd"
 
+info "Checking KVM hardware acceleration..."
+check_kvm() {
+    local cpu_vendor=""
+    local kvm_module=""
+    local has_virt_flags=false
+
+    # 1. Detect CPU virtualization capability
+    if grep -qE '(vmx|svm)' /proc/cpuinfo 2>/dev/null; then
+        has_virt_flags=true
+        if grep -q 'vmx' /proc/cpuinfo 2>/dev/null; then
+            cpu_vendor="Intel"
+            kvm_module="kvm_intel"
+        else
+            cpu_vendor="AMD"
+            kvm_module="kvm_amd"
+        fi
+    fi
+
+    if ! $has_virt_flags; then
+        warn "CPU does NOT support hardware virtualization (no vmx/svm flags)"
+        echo ""
+        echo -e "    ${YELLOW}Your CPU lacks VT-x (Intel) or AMD-V support.${NC}"
+        echo "    VMs will run in TCG mode (pure software emulation)."
+        echo "    This is 10-20x slower than KVM. Expected boot times: ~4-5 min instead of ~20s."
+        echo ""
+        echo "    If you're inside a VM yourself, enable nested virtualization on the host."
+        return
+    fi
+
+    # 2. Check if KVM module is loaded
+    local lsmod_out
+    lsmod_out="$(lsmod 2>/dev/null)"
+    if ! echo "${lsmod_out}" | grep -q "^kvm "; then
+        miss "KVM module not loaded (CPU: ${cpu_vendor}, module: ${kvm_module})"
+        echo ""
+        echo -e "    ${RED}╔══════════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "    ${RED}║  CRITICAL: KVM is NOT active — VMs are running 10-20x slower!  ║${NC}"
+        echo -e "    ${RED}╚══════════════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        echo "    Your ${cpu_vendor} CPU supports hardware virtualization, but the"
+        echo "    kernel module '${kvm_module}' is not loaded."
+        echo ""
+        echo -e "    ${GREEN}To fix NOW (until next reboot):${NC}"
+        echo "      sudo modprobe ${kvm_module}"
+        echo ""
+        echo -e "    ${GREEN}To fix PERMANENTLY (survives reboot):${NC}"
+        echo "      echo '${kvm_module}' | sudo tee /etc/modules-load.d/kvm.conf"
+        echo "      sudo modprobe ${kvm_module}"
+        echo ""
+        echo -e "    ${YELLOW}Impact:${NC} Without KVM, a VM boot takes ~4-5 min vs ~20s with KVM."
+        echo "    Bootstrap (pacman -Syu + packages) takes ~10 min vs ~30s."
+        return
+    fi
+
+    # 3. Check /dev/kvm exists and is accessible
+    if [ ! -e /dev/kvm ]; then
+        miss "/dev/kvm device missing (module loaded but device not created)"
+        echo "    Try: sudo modprobe ${kvm_module}"
+        return
+    fi
+
+    if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+        miss "/dev/kvm not accessible by current user"
+        echo ""
+        echo "    /dev/kvm exists but you don't have read+write permission."
+        echo ""
+        echo -e "    ${GREEN}Fix:${NC} Add yourself to the 'kvm' group:"
+        echo "      sudo usermod -aG kvm \$(whoami)"
+        echo "      newgrp kvm   # or log out and back in"
+        echo ""
+        echo "    Current permissions: $(ls -l /dev/kvm 2>/dev/null | awk '{print $1, $3, $4}')"
+        echo "    Your groups: $(groups)"
+        return
+    fi
+
+    # All good!
+    ok "KVM active (${cpu_vendor} ${kvm_module}, /dev/kvm accessible)"
+    echo -e "    VMs will use hardware acceleration — ${GREEN}optimal performance${NC}."
+}
+check_kvm
+
 info "Checking optional tools..."
 if command -v actionlint &>/dev/null; then
     ok "actionlint"
