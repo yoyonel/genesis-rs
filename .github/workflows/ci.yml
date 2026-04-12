@@ -10,12 +10,16 @@ jobs:
   quality:
     name: Quality Gate (fmt, lint, test)
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, "1.85.0"]
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ matrix.rust }}
           components: rustfmt, clippy
 
       - name: Cache cargo registry & build
@@ -25,23 +29,30 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: cargo-quality-${{ hashFiles('Cargo.lock') }}
-          restore-keys: cargo-quality-
+          key: cargo-quality-${{ matrix.rust }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-quality-${{ matrix.rust }}-
 
       - name: Install Just
         uses: extractions/setup-just@v2
 
       - name: Install actionlint
+        if: matrix.rust == 'stable'
         run: |
           curl -sL "https://github.com/rhysd/actionlint/releases/latest/download/actionlint_$(curl -sL https://api.github.com/repos/rhysd/actionlint/releases/latest | jq -r .tag_name | sed 's/^v//')_linux_amd64.tar.gz" | sudo tar xz -C /usr/local/bin actionlint
 
       - name: Check formatting
+        if: matrix.rust == 'stable'
         run: just format-check
 
       - name: Lint (Rust + CI + Actions)
+        if: matrix.rust == 'stable'
         run: just lint
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Lint (clippy only, MSRV)
+        if: matrix.rust != 'stable'
+        run: cargo clippy -- -D warnings
 
       - name: Run tests
         run: just test

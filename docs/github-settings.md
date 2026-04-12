@@ -161,3 +161,39 @@ gh api repos/:owner/:repo/milestones -f title="Phase 4 — Features" \
 gh project create --owner @me --title "genesis-rs Refactoring Roadmap"
 # Puis lier au repo via GraphQL (voir note ci-dessus)
 ```
+
+---
+
+## Branch Protection
+
+| Règle | Valeur |
+|-------|--------|
+| **Branch** | `master` |
+| **Required status checks** | `Quality Gate (fmt, lint, test) (stable)`, `Quality Gate (fmt, lint, test) (1.85.0)`, `Security Audit`, `Build Multi-Arch binaries` |
+| **Strict** | Oui (branch must be up-to-date before merge) |
+| **Enforce admins** | Non |
+| **Required reviews** | Non |
+| **Force push** | Interdit |
+| **Delete branch** | Interdit |
+
+```bash
+# Reproduction
+gh api repos/:owner/:repo/branches/master/protection -X PUT \
+  -H "Accept: application/vnd.github+json" \
+  --input - <<'EOF'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": [
+      "Quality Gate (fmt, lint, test) (stable)",
+      "Quality Gate (fmt, lint, test) (1.85.0)",
+      "Security Audit",
+      "Build Multi-Arch binaries"
+    ]
+  },
+  "enforce_admins": false,
+  "required_pull_request_reviews": null,
+  "restrictions": null
+}
+EOF
+```
