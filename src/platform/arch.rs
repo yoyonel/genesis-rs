@@ -123,12 +123,9 @@ mod tests {
     #[test]
     fn test_install_failure_propagates() {
         let mock = MockExecutor::new();
-        mock.set_fail_on("install");
-        // "install" won't match pacman args, let's use the package name
+        mock.set_fail_on("-S");
         let arch = make_arch(mock);
-        // This won't fail because we match on "install" but pacman uses -S
-        // Fix: match on the package name
-        assert!(arch.install_package("htop").is_ok());
+        assert!(arch.install_package("htop").is_err());
     }
 
     #[test]
