@@ -138,10 +138,13 @@ deploy-raspbian cmd="bootstrap" target=ARM_TARGET:
     scp {{SSH_OPTS}} -P 22223 target/{{target}}/release/genesis-rs genesis@localhost:/tmp/genesis-rs
     ssh {{SSH_OPTS}} -p 22223 genesis@localhost "chmod +x /tmp/genesis-rs && /tmp/genesis-rs {{cmd}}"
 
-# Kill all background VMs
+# Kill all background VMs (PID-based, safe)
 clean-vms:
-    killall qemu-system-x86_64 qemu-system-aarch64 2>/dev/null || true
-    @echo "All VMs terminated."
+    scripts/clean-vms.sh {{E2E_DIR}}
+
+# Show status of running VMs
+status-vms:
+    scripts/status-vms.sh {{E2E_DIR}}
 
 # Reset a single VM overlay to pristine state (idempotent boot)
 reset-overlay os:
