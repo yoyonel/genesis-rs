@@ -50,17 +50,16 @@ fn test_detect_subcommand_runs() {
         .arg("detect")
         .assert();
 
-    // On a supported OS it succeeds with SYSTEM SUMMARY output
+    // On a supported OS it succeeds with SYSTEM SUMMARY output (in stderr via tracing)
     // On unsupported OS it fails gracefully with an error message
     let output = result.get_output().clone();
-    let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
 
-    let is_supported = stdout.contains("SYSTEM SUMMARY");
+    let is_supported = stderr.contains("SYSTEM SUMMARY");
     let is_unsupported = stderr.contains("non supporté") || stderr.contains("not supported");
 
     assert!(
         is_supported || is_unsupported,
-        "Expected either system summary or unsupported error, got stdout={stdout}, stderr={stderr}"
+        "Expected either system summary or unsupported error, got stderr={stderr}"
     );
 }

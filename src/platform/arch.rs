@@ -5,6 +5,7 @@
 use super::{ESSENTIAL_PACKAGES, SystemPlatform, validate_package_name};
 use crate::executor::CommandExecutor;
 use anyhow::Result;
+use tracing::info;
 
 /// Implémentation de la plateforme Arch Linux.
 pub struct Arch {
@@ -20,11 +21,11 @@ impl SystemPlatform for Arch {
     }
 
     fn update_system(&self) -> Result<()> {
-        println!("Refreshing pacman keyring...");
+        info!("Refreshing pacman keyring...");
         self.executor.execute("sudo", &["pacman-key", "--init"])?;
         self.executor
             .execute("sudo", &["pacman-key", "--populate", "archlinux"])?;
-        println!("Updating system packages via pacman...");
+        info!("Updating system packages via pacman...");
         self.executor
             .execute("sudo", &["pacman", "-Syu", "--noconfirm"])?;
         Ok(())
@@ -32,14 +33,14 @@ impl SystemPlatform for Arch {
 
     fn install_package(&self, name: &str) -> Result<()> {
         validate_package_name(name)?;
-        println!("Installing package '{}' via pacman...", name);
+        info!(package = name, "Installing package via pacman");
         self.executor
             .execute("sudo", &["pacman", "-S", "--noconfirm", name])?;
         Ok(())
     }
 
     fn bootstrap(&self) -> Result<()> {
-        println!("Bootstrapping {}...", self.display_name());
+        info!(platform = %self.display_name(), "Bootstrapping");
         self.update_system()?;
         for pkg in ESSENTIAL_PACKAGES {
             self.install_package(pkg)?;
