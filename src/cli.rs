@@ -7,6 +7,10 @@ pub struct Cli {
     /// subcommand to execute
     #[command(subcommand)]
     pub command: Commands,
+
+    /// Preview commands without executing them
+    #[arg(long, global = true)]
+    pub dry_run: bool,
 }
 
 /// Available subcommands for genesis-rs.

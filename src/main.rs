@@ -15,7 +15,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Bootstrap => app::run_bootstrap()?,
+        Commands::Bootstrap => app::run_bootstrap(cli.dry_run)?,
         Commands::Detect => app::run_detect()?,
     }
 
