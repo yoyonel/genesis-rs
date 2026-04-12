@@ -8,6 +8,7 @@ use crate::executor::{CommandExecutor, RealExecutor};
 use anyhow::{Result, bail};
 use os_info::{Info, Type};
 use sysinfo::{Disks, System};
+use tracing::info;
 
 pub mod arch;
 
@@ -61,39 +62,37 @@ pub trait SystemPlatform {
         let mut sys = System::new_all();
         sys.refresh_all();
 
-        println!("--- SYSTEM SUMMARY ---");
-        println!("OS:         {}", self.display_name());
+        info!("--- SYSTEM SUMMARY ---");
+        info!(os = %self.display_name(), "OS detected");
 
         if let Some(cpu) = sys.cpus().first() {
             let brand = cpu.brand();
             let arch = std::env::consts::ARCH;
             if brand.is_empty() {
-                println!("CPU:        {} ({} cores)", arch, sys.cpus().len());
+                info!(arch, cores = sys.cpus().len(), "CPU");
             } else {
-                println!(
-                    "CPU:        {} {} ({} cores)",
-                    arch,
-                    brand,
-                    sys.cpus().len()
-                );
+                info!(arch, brand, cores = sys.cpus().len(), "CPU");
             }
         }
 
-        println!(
-            "RAM:        {:.2} GB",
-            sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0
+        info!(
+            ram_gb = format_args!(
+                "{:.2}",
+                sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0
+            ),
+            "RAM"
         );
 
         let disks = Disks::new_with_refreshed_list();
         for disk in &disks {
-            println!(
-                "Disk:       {:?} ({:.2} GB) - {:?}",
-                disk.mount_point(),
-                disk.total_space() as f64 / 1024.0 / 1024.0 / 1024.0,
-                disk.file_system()
+            info!(
+                mount = ?disk.mount_point(),
+                size_gb = format_args!("{:.2}", disk.total_space() as f64 / 1024.0 / 1024.0 / 1024.0),
+                fs = ?disk.file_system(),
+                "Disk"
             );
         }
-        println!("----------------------");
+        info!("----------------------");
     }
 }
 
@@ -117,7 +116,7 @@ impl SystemPlatform for AptPlatform {
     }
 
     fn update_system(&self) -> Result<()> {
-        println!("Updating system packages via apt...");
+        info!("Updating system packages via apt...");
         self.executor.execute(
             "sudo",
             &["DEBIAN_FRONTEND=noninteractive", "apt-get", "update"],
@@ -138,7 +137,7 @@ impl SystemPlatform for AptPlatform {
 
     fn install_package(&self, name: &str) -> Result<()> {
         validate_package_name(name)?;
-        println!("Installing package '{}' via apt...", name);
+        info!(package = name, "Installing package via apt");
         self.executor.execute(
             "sudo",
             &[
@@ -155,7 +154,7 @@ impl SystemPlatform for AptPlatform {
     }
 
     fn bootstrap(&self) -> Result<()> {
-        println!("Bootstrapping {}...", self.display_name());
+        info!(platform = %self.display_name(), "Bootstrapping");
         self.update_system()?;
         for pkg in ESSENTIAL_PACKAGES {
             self.install_package(pkg)?;
