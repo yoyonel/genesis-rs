@@ -138,4 +138,72 @@ pub mod tests {
             self
         }
     }
+
+    #[test]
+    fn test_dry_run_execute() {
+        let executor = DryRunExecutor;
+        assert!(executor.execute("echo", &["hello"]).is_ok());
+    }
+
+    #[test]
+    fn test_dry_run_execute_with_env() {
+        let executor = DryRunExecutor;
+        assert!(
+            executor
+                .execute_with_env("echo", &["hello"], &[("FOO", "bar")])
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn test_dry_run_as_any() {
+        let executor = DryRunExecutor;
+        assert!(executor.as_any().downcast_ref::<DryRunExecutor>().is_some());
+    }
+
+    #[test]
+    fn test_real_executor_success() {
+        let executor = RealExecutor;
+        assert!(executor.execute("true", &[]).is_ok());
+    }
+
+    #[test]
+    fn test_real_executor_failure() {
+        let executor = RealExecutor;
+        assert!(executor.execute("false", &[]).is_err());
+    }
+
+    #[test]
+    fn test_real_executor_with_env() {
+        let executor = RealExecutor;
+        assert!(
+            executor
+                .execute_with_env("true", &[], &[("TEST_VAR", "1")])
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn test_real_executor_as_any() {
+        let executor = RealExecutor;
+        assert!(executor.as_any().downcast_ref::<RealExecutor>().is_some());
+    }
+
+    #[test]
+    fn test_mock_executor_records_calls() {
+        let mock = MockExecutor::new();
+        mock.execute("apt-get", &["update"]).unwrap();
+        let calls = mock.calls.borrow();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].0, "apt-get");
+        assert_eq!(calls[0].1, vec!["update"]);
+    }
+
+    #[test]
+    fn test_mock_executor_fail_on() {
+        let mock = MockExecutor::new();
+        mock.set_fail_on("dangerous");
+        assert!(mock.execute("dangerous", &["command"]).is_err());
+        assert!(mock.execute("safe", &["command"]).is_ok());
+    }
 }

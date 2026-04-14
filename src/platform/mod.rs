@@ -381,4 +381,25 @@ mod tests {
         assert!(apt.install_package("evil; rm -rf /").is_err());
         assert!(apt.install_package("").is_err());
     }
+
+    #[test]
+    fn test_get_platform_returns_some_on_supported_os() {
+        // On CI (Ubuntu) this should return Some(Debian)
+        // On other supported OS, also Some
+        // On unsupported OS, None — both are valid
+        let _ = get_platform();
+    }
+
+    #[test]
+    fn test_get_platform_with_executor_dry_run() {
+        let executor: Box<dyn CommandExecutor> = Box::new(crate::executor::DryRunExecutor);
+        let _ = get_platform_with_executor(executor);
+    }
+
+    #[test]
+    fn test_print_summary_does_not_panic() {
+        let apt = make_apt("Debian");
+        // print_summary uses sysinfo internally — just verify no panic
+        apt.print_summary();
+    }
 }

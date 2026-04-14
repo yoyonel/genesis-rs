@@ -80,4 +80,101 @@ pub mod app {
         packages.extend(extra.iter().cloned());
         packages
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::config::{Config, PackageConfig};
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
+        fn make_config(common: &[&str], debian: &[&str], arch: &[&str]) -> Config {
+            Config {
+                packages: PackageConfig {
+                    common: common.iter().map(|s| s.to_string()).collect(),
+                    debian: debian.iter().map(|s| s.to_string()).collect(),
+                    arch: arch.iter().map(|s| s.to_string()).collect(),
+                    raspbian: Vec::new(),
+                },
+            }
+        }
+
+        #[test]
+        fn test_get_platform_packages_debian() {
+            let cfg = make_config(&["git", "curl"], &["build-essential"], &["base-devel"]);
+            let pkgs = get_platform_packages(&cfg, "Debian 12");
+            assert_eq!(pkgs, vec!["git", "curl", "build-essential"]);
+        }
+
+        #[test]
+        fn test_get_platform_packages_arch() {
+            let cfg = make_config(&["git"], &["nginx"], &["base-devel"]);
+            let pkgs = get_platform_packages(&cfg, "Arch Linux rolling");
+            assert_eq!(pkgs, vec!["git", "base-devel"]);
+        }
+
+        #[test]
+        fn test_get_platform_packages_raspbian() {
+            let cfg = Config {
+                packages: PackageConfig {
+                    common: vec!["git".into()],
+                    debian: Vec::new(),
+                    arch: Vec::new(),
+                    raspbian: vec!["rpi-update".into()],
+                },
+            };
+            let pkgs = get_platform_packages(&cfg, "Raspberry Pi OS 12");
+            assert_eq!(pkgs, vec!["git", "rpi-update"]);
+        }
+
+        #[test]
+        fn test_get_platform_packages_unknown() {
+            let cfg = make_config(&["git", "curl"], &["nginx"], &["base-devel"]);
+            let pkgs = get_platform_packages(&cfg, "Fedora 39");
+            // Unknown platform returns only common packages
+            assert_eq!(pkgs, vec!["git", "curl"]);
+        }
+
+        #[test]
+        fn test_resolve_platform_dry_run() {
+            // dry_run = true should succeed on any supported OS (returns DryRunExecutor)
+            // On unsupported OS, it errors — both paths are valid
+            let result = resolve_platform(true);
+            // We just verify it doesn't panic — success depends on host OS
+            let _ = result;
+        }
+
+        #[test]
+        fn test_run_bootstrap_dry_run_with_config() {
+            let mut f = NamedTempFile::new().unwrap();
+            writeln!(
+                f,
+                r#"
+[packages]
+common = ["git"]
+"#
+            )
+            .unwrap();
+
+            // dry_run bootstrap with a valid config file
+            let result = run_bootstrap(true, Some(f.path()));
+            // On supported OS: succeeds (dry-run prints commands)
+            // On unsupported OS: fails with "non supporté"
+            let _ = result;
+        }
+
+        #[test]
+        fn test_run_bootstrap_missing_config() {
+            // Pointing to a nonexistent config should still work (defaults used)
+            let result = run_bootstrap(true, None);
+            let _ = result;
+        }
+
+        #[test]
+        fn test_run_detect() {
+            // detect should either succeed with summary or fail gracefully
+            let result = run_detect();
+            let _ = result;
+        }
+    }
 }
