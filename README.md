@@ -1,5 +1,11 @@
 # 🧪 genesis-rs
 
+[![CI](https://github.com/yoyonel/genesis-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/yoyonel/genesis-rs/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/yoyonel/genesis-rs?label=release)](https://github.com/yoyonel/genesis-rs/releases/latest)
+[![MSRV](https://img.shields.io/badge/MSRV-1.85.0-blue)](https://doc.rust-lang.org/cargo/reference/manifest.html#the-rust-version-field)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://yoyonel.github.io/genesis-rs/)
+
 **genesis-rs** est un outil de bootstrap et de configuration système agnostique développé en Rust. Il permet de provisionner, mettre à jour et configurer des instances Linux (Debian, Arch, Raspbian) de manière industrielle et automatisée.
 
 ## 🚀 Fonctionnalités Clés
@@ -302,12 +308,22 @@ just install-hooks   # Installe le hook (fait automatiquement par just setup)
 
 ## 🤖 Pipeline CI/CD
 
-Chaque push/PR déclenche une pipeline en 3 étapes :
+Chaque push/PR déclenche une pipeline en 8 jobs :
 
 ```
-quality (fmt + lint + test + cargo audit)
-  └─→ build (x86_64 + ARM64 statiques)
-        └─→ e2e-test (Debian + Arch + Raspbian en parallèle via QEMU)
+quality (stable)  ─┐
+quality (MSRV)    ─┤──→ build (x86_64 + ARM64 statiques) ──→ e2e ×3 (Debian, Arch, Raspbian)
+security          ─┘
+coverage          ─── (parallèle, indépendant)
 ```
+
+- **Coverage** : `cargo-tarpaulin` avec rapport HTML en artifact
+- **Release** : le push d'un tag `v*` déclenche un build multi-arch et crée une [GitHub Release](https://github.com/yoyonel/genesis-rs/releases) avec les binaires statiques
 
 La CI utilise les **mêmes recettes Justfile** que le développement local — pas de divergence.
+
+## 📚 Documentation
+
+La documentation Rustdoc est générée et déployée automatiquement sur GitHub Pages à chaque push sur `master` :
+
+**→ [https://yoyonel.github.io/genesis-rs/](https://yoyonel.github.io/genesis-rs/)**
