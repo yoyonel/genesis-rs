@@ -22,6 +22,22 @@ Work follows the milestone phases defined in GitHub:
 5. CI must be green before merge
 6. After merge: verify issue auto-closed, update project board
 
+## Full Traceability — MANDATORY
+
+**Every change, no matter how small, MUST have a complete tracking chain:**
+
+1. **Issue** — Create a GitHub issue describing the problem/feature before any code change
+2. **Branch** — Create a dedicated branch from `master` (`fix/`, `feat/`, etc.)
+3. **Commit(s)** — Small, SoC-compliant commits on the branch
+4. **PR** — Open a PR with labels, milestone (if applicable), and `Closes #N`
+5. **Merge** — Only after CI is green
+6. **Verify** — Confirm issue auto-closed and project board updated
+
+**No exceptions**: hotfixes, typo fixes, script tweaks, config changes — everything gets an issue and a PR. This ensures:
+- Full audit trail of every change
+- Searchable history (why was this changed? → find the issue)
+- CI validation on every change before it reaches `master`
+
 ## Never Push Directly to Master
 
 - All changes go through PRs — even hotfixes
