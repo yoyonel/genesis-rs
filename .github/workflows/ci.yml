@@ -10,6 +10,7 @@ jobs:
   quality:
     name: Quality Gate (fmt, lint, test)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       matrix:
         rust: [stable, "1.85.0"]
@@ -60,6 +61,7 @@ jobs:
   security:
     name: Security Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -81,6 +83,7 @@ jobs:
     name: Build Multi-Arch binaries
     needs: quality
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       
@@ -99,8 +102,14 @@ jobs:
           key: cargo-build-${{ hashFiles('Cargo.lock') }}
           restore-keys: cargo-build-
           
+      - name: Cache APT packages (cross-linker)
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives/*.deb
+          key: apt-build-cross-v1
+
       - name: Install Cross-Linker
-        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu musl-tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu musl-tools
         
       - name: Install Just
         uses: extractions/setup-just@v2
@@ -121,6 +130,7 @@ jobs:
     name: E2E Verify - ${{ matrix.os }}
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -128,12 +138,15 @@ jobs:
           - os: debian
             port: 22221
             target: x86_64-unknown-linux-musl
+            qemu_pkgs: "qemu-system-x86 qemu-utils genisoimage"
           - os: arch
             port: 22222
             target: x86_64-unknown-linux-musl
+            qemu_pkgs: "qemu-system-x86 qemu-utils genisoimage"
           - os: raspbian
             port: 22223
             target: aarch64-unknown-linux-musl
+            qemu_pkgs: "qemu-system-arm qemu-utils genisoimage qemu-efi-aarch64 ipxe-qemu"
             
     steps:
       - uses: actions/checkout@v4
@@ -150,10 +163,16 @@ jobs:
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm
 
+      - name: Cache APT packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives/*.deb
+          key: apt-e2e-${{ matrix.os }}-v1
+
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-system-x86 qemu-system-arm qemu-utils genisoimage qemu-efi-aarch64
+          sudo apt-get install -y --no-install-recommends ${{ matrix.qemu_pkgs }}
           
       - name: Install Just
         uses: extractions/setup-just@v2
@@ -170,4 +189,4 @@ jobs:
 
       - name: Run E2E Verification (System Info)
         run: just ci-test ${{ matrix.os }} ${{ matrix.port }} ${{ matrix.target }} "true"
-        timeout-minutes: 15
+        timeout-minutes: 8
