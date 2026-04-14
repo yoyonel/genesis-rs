@@ -10,6 +10,7 @@ jobs:
   quality:
     name: Quality Gate (fmt, lint, test)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       matrix:
         rust: [stable, "1.85.0"]
@@ -60,6 +61,7 @@ jobs:
   security:
     name: Security Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -81,6 +83,7 @@ jobs:
     name: Build Multi-Arch binaries
     needs: quality
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       
@@ -121,6 +124,7 @@ jobs:
     name: E2E Verify - ${{ matrix.os }}
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -170,4 +174,4 @@ jobs:
 
       - name: Run E2E Verification (System Info)
         run: just ci-test ${{ matrix.os }} ${{ matrix.port }} ${{ matrix.target }} "true"
-        timeout-minutes: 15
+        timeout-minutes: 8
