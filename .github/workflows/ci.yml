@@ -15,7 +15,7 @@ jobs:
       matrix:
         rust: [stable, "1.85.0"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
@@ -24,7 +24,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Cache cargo registry & build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -34,7 +34,7 @@ jobs:
           restore-keys: cargo-quality-${{ matrix.rust }}-
 
       - name: Install Just
-        uses: extractions/setup-just@v2
+        uses: extractions/setup-just@v4
 
       - name: Install actionlint
         if: matrix.rust == 'stable'
@@ -63,13 +63,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo-audit binary
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cargo/bin/cargo-audit
           key: cargo-audit-${{ runner.os }}-v1
@@ -85,7 +85,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -93,7 +93,7 @@ jobs:
           targets: x86_64-unknown-linux-musl, aarch64-unknown-linux-musl
 
       - name: Cache cargo registry & build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -103,7 +103,7 @@ jobs:
           restore-keys: cargo-build-
           
       - name: Cache APT packages (cross-linker)
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /var/cache/apt/archives/*.deb
           key: apt-build-cross-v1
@@ -112,7 +112,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu musl-tools
         
       - name: Install Just
-        uses: extractions/setup-just@v2
+        uses: extractions/setup-just@v4
 
       - name: Build x86_64
         run: just build
@@ -121,7 +121,7 @@ jobs:
         run: just build-arm-native
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: genesis-binaries
           path: target/**/release/genesis-rs
@@ -149,10 +149,10 @@ jobs:
             qemu_pkgs: "qemu-system-arm qemu-utils genisoimage qemu-efi-aarch64 ipxe-qemu"
             
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: genesis-binaries
           path: target
@@ -164,7 +164,7 @@ jobs:
         run: sudo chmod 666 /dev/kvm
 
       - name: Cache APT packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /var/cache/apt/archives/*.deb
           key: apt-e2e-${{ matrix.os }}-v1
@@ -175,11 +175,11 @@ jobs:
           sudo apt-get install -y --no-install-recommends ${{ matrix.qemu_pkgs }}
           
       - name: Install Just
-        uses: extractions/setup-just@v2
+        uses: extractions/setup-just@v4
 
       - name: Cache Cloud Images
         id: cache-images
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: tests/e2e/*.qcow2
           key: cloud-images-v2-${{ matrix.os }}
