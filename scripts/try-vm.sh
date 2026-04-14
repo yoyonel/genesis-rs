@@ -2,6 +2,7 @@
 # Boot a VM, deploy genesis-rs, run bootstrap, then open an interactive SSH shell.
 # Ensures everything is in place: image provisioned, binary built, SSH ready.
 # Usage: try-vm.sh <os> <port> <target> <e2e_dir> [--reset] [--arm64]
+# shellcheck disable=SC2086  # SSH_OPTS/ARM64 intentionally word-split (multiple args)
 set -euo pipefail
 
 OS="${1:?Usage: try-vm.sh <os> <port> <target> <e2e_dir> [--reset] [--arm64]}"

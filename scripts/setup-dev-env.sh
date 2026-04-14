@@ -223,7 +223,7 @@ check_kvm() {
         echo "      sudo usermod -aG kvm \$(whoami)"
         echo "      newgrp kvm   # or log out and back in"
         echo ""
-        echo "    Current permissions: $(ls -l /dev/kvm 2>/dev/null | awk '{print $1, $3, $4}')"
+        echo "    Current permissions: $(stat -c '%A %U %G' /dev/kvm 2>/dev/null)"
         echo "    Your groups: $(groups)"
         return
     fi
