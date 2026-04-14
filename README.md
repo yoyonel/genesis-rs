@@ -327,3 +327,11 @@ La CI utilise les **mêmes recettes Justfile** que le développement local — p
 La documentation Rustdoc est générée et déployée automatiquement sur GitHub Pages à chaque push sur `master` :
 
 **→ [https://yoyonel.github.io/genesis-rs/](https://yoyonel.github.io/genesis-rs/)**
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, workflow, and coding standards.
+
+## 📋 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed list of changes per release.
