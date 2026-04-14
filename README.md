@@ -98,7 +98,7 @@ just deploy-debian detect
 
 ```bash
 just check          # Vérifier que le code compile
-just test           # Lancer les 37 tests (unitaires + fonctionnels + doctest)
+just test           # Lancer les 57 tests (unitaires + fonctionnels + doctest)
 just lint           # Clippy + actionlint + vérification GitHub Actions
 just format         # Formater le code (cargo fmt)
 just doc            # Générer la documentation Rustdoc
@@ -296,7 +296,7 @@ Pour maintenir une base de code saine, le projet impose :
 1. **Formatage** : `cargo fmt` est obligatoire (`just format-check`).
 2. **Linting** : `clippy` ne doit retourner aucune erreur ou warning (`just lint-rust`).
 3. **CI Validation** : Les fichiers `.yml` de GitHub Actions sont validés par `actionlint` (`just lint-ci`).
-4. **Tests** : 37 tests doivent passer (30 unitaires + 6 fonctionnels + 1 doctest) (`just test`).
+4. **Tests** : 57 tests doivent passer (50 unitaires + 6 fonctionnels + 1 doctest) (`just test`).
 5. **Documentation** : `cargo doc --no-deps` doit compiler sans warnings. Tous les items `pub` ont des `///` docs.
 6. **Sécurité** : `cargo audit` ne doit pas présenter de vulnérabilités connues.
 7. **Validation des entrées** : Les noms de paquets sont validés par whitelist (`[a-zA-Z0-9.+-]`, max 256 caractères).
