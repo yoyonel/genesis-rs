@@ -60,6 +60,10 @@ format-check:
 test:
     cargo test
 
+# Run tests with coverage reporting (requires cargo-tarpaulin)
+coverage:
+    cargo tarpaulin --skip-clean --out Stdout
+
 # Generate Rustdoc
 doc:
     cargo doc --no-deps

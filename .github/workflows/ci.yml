@@ -79,6 +79,39 @@ jobs:
           command -v cargo-audit >/dev/null 2>&1 || cargo install cargo-audit --locked
           cargo audit
 
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry & tarpaulin
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/cargo-tarpaulin
+            target
+          key: cargo-coverage-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-coverage-
+
+      - name: Install cargo-tarpaulin
+        run: command -v cargo-tarpaulin >/dev/null 2>&1 || cargo install cargo-tarpaulin --locked
+
+      - name: Run coverage
+        run: cargo tarpaulin --skip-clean --out Stdout --out Html
+        
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: tarpaulin-report.html
+
   build:
     name: Build Multi-Arch binaries
     needs: quality
