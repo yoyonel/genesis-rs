@@ -27,8 +27,8 @@ setup-check:
 check:
     cargo check
 
-# Run all linters (Rust + CI workflows + GitHub Actions existence)
-lint: format-check lint-rust lint-ci check-actions
+# Run all linters (Rust + CI workflows + GitHub Actions existence + shell)
+lint: format-check lint-rust lint-ci check-actions lint-shell
 
 # Lint Rust code (clippy, zero warnings)
 lint-rust:
@@ -43,6 +43,10 @@ check-actions:
     @echo "🔍 Vérification de l'existence des GitHub Actions..."
     @grep "uses:" .github/workflows/*.yml | grep -v "./" | sed 's/.*uses: \(.*\)@.*/\1/' | sort -u | xargs -n 1 gh repo view --json nameWithOwner -q .nameWithOwner || (echo "❌ Une ou plusieurs actions sont introuvables !"; exit 1)
     @echo "✅ Toutes les actions sont valides."
+
+# Lint shell scripts (shellcheck)
+lint-shell:
+    shellcheck scripts/*.sh
 
 # Format code
 format:
