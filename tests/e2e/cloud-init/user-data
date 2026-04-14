@@ -6,11 +6,7 @@ users:
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     ssh-authorized-keys:
       - __GENESIS_SSH_KEY__
-ssh_pwauth: true
+ssh_pwauth: false
 disable_root: true
-chpasswd:
-  list: |
-    genesis:genesis
-  expire: false
 runcmd:
   - echo "Cloud-init finished."
