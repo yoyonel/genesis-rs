@@ -146,7 +146,7 @@ jobs:
           - os: raspbian
             port: 22223
             target: aarch64-unknown-linux-musl
-            qemu_pkgs: "qemu-system-arm qemu-utils genisoimage qemu-efi-aarch64"
+            qemu_pkgs: "qemu-system-arm qemu-utils genisoimage qemu-efi-aarch64 ipxe-qemu"
             
     steps:
       - uses: actions/checkout@v4
