@@ -94,4 +94,4 @@ echo "  Type 'exit' to leave. VM stays running."
 echo "  Stop VM later with: just clean-vms"
 echo "═══════════════════════════════════════════════════════"
 echo ""
-ssh ${SSH_OPTS} -p "${PORT}" -t genesis@localhost
+ssh ${SSH_OPTS} -p "${PORT}" -t genesis@localhost || true

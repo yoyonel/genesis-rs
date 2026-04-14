@@ -160,15 +160,15 @@ try-raspbian reset="": (build ARM_TARGET)
 
 # SSH into a running Debian VM
 ssh-debian:
-    ssh {{SSH_OPTS}} -p 22221 -t genesis@localhost
+    -ssh {{SSH_OPTS}} -p 22221 -t genesis@localhost
 
 # SSH into a running Arch VM
 ssh-arch:
-    ssh {{SSH_OPTS}} -p 22222 -t genesis@localhost
+    -ssh {{SSH_OPTS}} -p 22222 -t genesis@localhost
 
 # SSH into a running Raspbian VM
 ssh-raspbian:
-    ssh {{SSH_OPTS}} -p 22223 -t genesis@localhost
+    -ssh {{SSH_OPTS}} -p 22223 -t genesis@localhost
 
 # Reset a single VM overlay to pristine state (idempotent boot)
 reset-overlay os:
