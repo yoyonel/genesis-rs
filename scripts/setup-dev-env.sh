@@ -110,7 +110,7 @@ ARCH_PKGS=(
 DISTRO=$(detect_distro)
 echo "═══════════════════════════════════════════════════════════"
 echo "  genesis-rs Development Environment Setup"
-echo "  Host: $(cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d= -f2 | tr -d '"')"
+echo "  Host: $(grep PRETTY_NAME /etc/os-release 2>/dev/null | cut -d= -f2 | tr -d '"')"
 echo "  Distro family: ${DISTRO}"
 echo "═══════════════════════════════════════════════════════════"
 
