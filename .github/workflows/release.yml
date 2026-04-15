@@ -7,6 +7,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-release:
     name: Build ${{ matrix.target }}
@@ -71,8 +75,14 @@ jobs:
       - name: Install build dependencies
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends musl-tools
 
+      - name: Cache cargo-deb
+        uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/cargo-deb
+          key: cargo-deb-${{ runner.os }}-v1
+
       - name: Install cargo-deb
-        run: cargo install cargo-deb --locked
+        run: command -v cargo-deb >/dev/null 2>&1 || cargo install cargo-deb --locked
 
       - name: Build .deb
         run: cargo deb --target x86_64-unknown-linux-musl
