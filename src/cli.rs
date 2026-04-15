@@ -16,6 +16,10 @@ pub struct Cli {
     /// Path to TOML configuration file
     #[arg(long, global = true)]
     pub config: Option<PathBuf>,
+
+    /// Enable verbose (debug-level) logging
+    #[arg(short, long, global = true)]
+    pub verbose: bool,
 }
 
 /// Available subcommands for genesis-rs.

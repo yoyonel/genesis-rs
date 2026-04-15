@@ -27,6 +27,7 @@ pub mod app {
     use crate::platform::{get_platform, get_platform_with_executor};
     use anyhow::{Context, Result};
     use std::path::Path;
+    use tracing::debug;
 
     fn resolve_platform(dry_run: bool) -> Result<Box<dyn crate::platform::SystemPlatform>> {
         if dry_run {
@@ -42,8 +43,9 @@ pub mod app {
     pub fn run_bootstrap(dry_run: bool, config_path: Option<&Path>) -> Result<()> {
         let platform = resolve_platform(dry_run)?;
 
-        let cfg =
-            config::load_config(config_path.unwrap_or(Path::new(config::DEFAULT_CONFIG_PATH)))?;
+        let config_file = config_path.unwrap_or(Path::new(config::DEFAULT_CONFIG_PATH));
+        debug!(path = %config_file.display(), "Loading configuration");
+        let cfg = config::load_config(config_file)?;
 
         let platform_packages = get_platform_packages(&cfg, &platform.display_name());
 
