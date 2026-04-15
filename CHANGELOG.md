@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **RPi4 QEMU fallback**: Automatic fallback to QEMU ARM64 emulation on GitHub-hosted runners when the self-hosted RPi4 runner is unavailable. 3-tier detection: API check (optional `RUNNER_ADMIN_TOKEN`), repository variable (`vars.RPI4_RUNNER`), default QEMU.
+- **RPi4 runner documentation**: New `docs/rpi4-runner.md` covering hardware specs, installation procedure, CI/CD workflow architecture, configuration, and troubleshooting.
+
 ## [0.2.0] - 2026-04-15
 
 ### Added

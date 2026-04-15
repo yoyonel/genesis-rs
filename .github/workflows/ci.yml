@@ -231,9 +231,47 @@ jobs:
         run: just ci-test ${{ matrix.os }} ${{ matrix.port }} ${{ matrix.target }} "true"
         timeout-minutes: 8
 
+  check-rpi4:
+    name: Check RPi4 Runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      available: ${{ steps.check.outputs.available }}
+    steps:
+      - name: Check RPi4 runner availability
+        id: check
+        run: |
+          # Tier 1: Dynamic API check (requires RUNNER_ADMIN_TOKEN secret)
+          if [ -n "${ADMIN_TOKEN}" ]; then
+            STATUS=$(curl -sf -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runners" \
+              | jq -r '[.runners[] | select(any(.labels[]; .name == "rpi4"))] | if length > 0 then .[0].status else "offline" end' \
+              2>/dev/null || echo "offline")
+            echo "::notice::RPi4 runner status (API): ${STATUS}"
+            if [ "${STATUS}" = "online" ]; then
+              echo "available=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          # Tier 2: Static override via repository variable
+          if [ "${RPI4_ENABLED}" = "true" ]; then
+            echo "::notice::RPi4 runner enabled via repository variable"
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Tier 3: Default to QEMU fallback
+          echo "::notice::RPi4 runner not available — using QEMU fallback"
+          echo "available=false" >> "$GITHUB_OUTPUT"
+        env:
+          ADMIN_TOKEN: ${{ secrets.RUNNER_ADMIN_TOKEN }}
+          RPI4_ENABLED: ${{ vars.RPI4_RUNNER }}
+
   e2e-raspbian:
     name: E2E Verify - raspbian (bare-metal ARM64)
-    needs: build
+    needs: [build, check-rpi4]
+    if: needs.check-rpi4.outputs.available == 'true'
     runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 5
     steps:
@@ -262,3 +300,52 @@ jobs:
           "$BINARY" -v detect 2>&1 | tee /tmp/genesis-detect-verbose.log
           grep -q "DEBUG" /tmp/genesis-detect-verbose.log
           echo "✅ Bare-metal ARM64 verbose detect passed"
+
+  e2e-raspbian-qemu:
+    name: E2E Verify - raspbian (QEMU fallback)
+    needs: [build, check-rpi4]
+    if: needs.check-rpi4.outputs.available != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: genesis-binaries
+          path: target
+
+      - name: Fix binary permissions
+        run: find target -name genesis-rs -type f -exec chmod +x {} \;
+
+      - name: Enable KVM
+        run: sudo chmod 666 /dev/kvm
+
+      - name: Cache APT packages
+        uses: actions/cache@v5
+        with:
+          path: /var/cache/apt/archives/*.deb
+          key: apt-e2e-raspbian-qemu-v1
+
+      - name: Install QEMU ARM64 Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            qemu-system-arm qemu-efi-aarch64 qemu-utils genisoimage ipxe-qemu
+
+      - name: Install Just
+        uses: extractions/setup-just@v4
+
+      - name: Cache Cloud Images
+        uses: actions/cache@v5
+        with:
+          path: tests/e2e/*.qcow2
+          key: cloud-images-v2-raspbian
+
+      - name: Provision Raspbian VM
+        run: just provision-raspbian
+
+      - name: Run E2E Verification (QEMU ARM64)
+        run: just ci-test raspbian 22223 aarch64-unknown-linux-musl "true"
+        timeout-minutes: 12
