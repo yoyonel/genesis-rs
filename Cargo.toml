@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.85.0"
 license = "MIT"
+description = "Linux bootstrap and provisioning tool for Debian, Arch, and Raspbian"
+homepage = "https://github.com/yoyonel/genesis-rs"
+repository = "https://github.com/yoyonel/genesis-rs"
 
 [dependencies]
 anyhow = "1.0.102"
@@ -19,3 +22,16 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 assert_cmd = "2.0"
 predicates = "3.1"
 tempfile = "3"
+
+[package.metadata.deb]
+maintainer = "yoyonel <yoyonel@github.com>"
+section = "admin"
+priority = "optional"
+extended-description = """\
+genesis-rs detects the running Linux distribution and bootstraps it \
+with essential packages. Supports Debian, Arch Linux, and Raspberry Pi OS."""
+assets = [
+    ["target/release/genesis-rs", "usr/bin/", "755"],
+    ["README.md", "usr/share/doc/genesis-rs/", "644"],
+    ["genesis.toml.example", "usr/share/doc/genesis-rs/", "644"],
+]
