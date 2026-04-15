@@ -1,6 +1,6 @@
 # Maintainer: yoyonel <yoyonel@github.com>
 pkgname=genesis-rs
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc='Linux bootstrap and provisioning tool for Debian, Arch, and Raspbian'
 arch=('x86_64' 'aarch64')
