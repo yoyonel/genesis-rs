@@ -104,6 +104,11 @@ package-deb: (build TARGET)
     cargo deb --no-build --target {{TARGET}}
     @echo "✅ .deb package built in target/{{TARGET}}/debian/"
 
+# Build Arch Linux package via makepkg (requires makepkg + cargo)
+package-arch:
+    cd packaging/arch && makepkg -sf --noconfirm
+    @echo "✅ Arch package built in packaging/arch/"
+
 # ─── VM Provisioning ─────────────────────────────────────────────────────────
 
 # Generate SSH key pair for E2E tests (idempotent)
