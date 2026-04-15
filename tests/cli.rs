@@ -86,3 +86,149 @@ fn test_bootstrap_dry_run() {
         "Expected dry-run output or unsupported error, got stdout={stdout}, stderr={stderr}"
     );
 }
+
+// ─── Golden / Snapshot Tests ─────────────────────────────────────────────────
+// These tests verify the structural format of detect output.
+// If a dependency update (e.g. sysinfo) silently changes field names or
+// output format, these tests will catch it.
+// NO_COLOR=1 disables ANSI escape codes in tracing output so that field
+// names like "cores=" can be matched as plain text.
+
+#[test]
+fn test_detect_output_contains_system_summary_header() {
+    let output = Command::cargo_bin("genesis-rs")
+        .unwrap()
+        .env("NO_COLOR", "1")
+        .arg("detect")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if output.status.success() {
+        assert!(
+            stderr.contains("SYSTEM SUMMARY"),
+            "Missing SYSTEM SUMMARY header in detect output: {stderr}"
+        );
+    }
+}
+
+#[test]
+fn test_detect_output_contains_os_field() {
+    let output = Command::cargo_bin("genesis-rs")
+        .unwrap()
+        .env("NO_COLOR", "1")
+        .arg("detect")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if output.status.success() {
+        assert!(
+            stderr.contains("OS detected") || stderr.contains("os="),
+            "Missing OS detection field in detect output: {stderr}"
+        );
+    }
+}
+
+#[test]
+fn test_detect_output_contains_cpu_field() {
+    let output = Command::cargo_bin("genesis-rs")
+        .unwrap()
+        .env("NO_COLOR", "1")
+        .arg("detect")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if output.status.success() {
+        assert!(
+            stderr.contains("CPU"),
+            "Missing CPU field in detect output: {stderr}"
+        );
+    }
+}
+
+#[test]
+fn test_detect_output_contains_ram_field() {
+    let output = Command::cargo_bin("genesis-rs")
+        .unwrap()
+        .env("NO_COLOR", "1")
+        .arg("detect")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if output.status.success() {
+        assert!(
+            stderr.contains("RAM"),
+            "Missing RAM field in detect output: {stderr}"
+        );
+    }
+}
+
+#[test]
+fn test_detect_output_contains_disk_field() {
+    let output = Command::cargo_bin("genesis-rs")
+        .unwrap()
+        .env("NO_COLOR", "1")
+        .arg("detect")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if output.status.success() {
+        assert!(
+            stderr.contains("Disk"),
+            "Missing Disk field in detect output: {stderr}"
+        );
+    }
+}
+
+#[test]
+fn test_detect_output_format_has_closing_separator() {
+    let output = Command::cargo_bin("genesis-rs")
+        .unwrap()
+        .env("NO_COLOR", "1")
+        .arg("detect")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if output.status.success() {
+        assert!(
+            stderr.contains("----------------------"),
+            "Missing closing separator in detect output: {stderr}"
+        );
+    }
+}
+
+#[test]
+fn test_detect_output_ram_has_numeric_value() {
+    let output = Command::cargo_bin("genesis-rs")
+        .unwrap()
+        .env("NO_COLOR", "1")
+        .arg("detect")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if output.status.success() {
+        let has_ram_value = stderr
+            .lines()
+            .any(|l| l.contains("RAM") && l.chars().any(|c| c.is_ascii_digit()));
+        assert!(
+            has_ram_value,
+            "RAM line should contain a numeric value: {stderr}"
+        );
+    }
+}
+
+#[test]
+fn test_detect_output_cpu_has_cores() {
+    let output = Command::cargo_bin("genesis-rs")
+        .unwrap()
+        .env("NO_COLOR", "1")
+        .arg("detect")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if output.status.success() {
+        assert!(
+            stderr.contains("cores="),
+            "CPU output should contain cores= field: {stderr}"
+        );
+    }
+}
