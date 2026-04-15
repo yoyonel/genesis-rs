@@ -13,7 +13,7 @@
 - **📦 Gestion de Paquets Agnostique** : Interface unifiée pour `apt-get` (Debian/Raspbian) et `pacman` (Arch Linux), avec validation des noms de paquets (whitelist `[a-zA-Z0-9.+-]`).
 - **⚙️ Configuration TOML** : Listes de paquets personnalisables par plateforme via `genesis.toml` (voir [Configuration](#-configuration)).
 - **🔍 Mode Dry-Run** : Prévisualisation des commandes sans exécution (`--dry-run`).
-- **📊 Logging Structuré** : Traçabilité complète via `tracing` avec niveau configurable (`RUST_LOG`).
+- **📊 Logging Structuré** : Traçabilité complète via `tracing` avec niveau configurable (`RUST_LOG` ou `--verbose`).
 - **🖥️ Dashboard Matériel** : Auto-inspection détaillée au lancement (CPU, RAM, Disques, OS Version) via `sysinfo`.
 - **🛡️ Qualité de Code Automatisée** : Pre-commit hooks intégrés pour garantir le formatage (`rustfmt`), le linting (`clippy`) et la validation CI (`actionlint`).
 - **🏗️ Build Multi-Arch** : Support natif pour x86_64 et ARM64 (via Distrobox pour les environnements immuables comme Bazzite).
@@ -98,7 +98,7 @@ just deploy-debian detect
 
 ```bash
 just check          # Vérifier que le code compile
-just test           # Lancer les 65 tests (unitaires + fonctionnels + doctest)
+just test           # Lancer les 68 tests (unitaires + fonctionnels + doctest)
 just lint           # Clippy + actionlint + vérification GitHub Actions
 just format         # Formater le code (cargo fmt)
 just doc            # Générer la documentation Rustdoc
@@ -169,6 +169,7 @@ genesis-rs [OPTIONS] <COMMAND>
 | Option | Description |
 |:---|:---|
 | `--dry-run` | Prévisualise les commandes sans les exécuter. Affiche `[dry-run] cmd args` sur stdout |
+| `-v, --verbose` | Active les logs de niveau DEBUG (détection plateforme, chargement config…) |
 | `--config <PATH>` | Chemin vers un fichier de configuration TOML (défaut : `genesis.toml`) |
 | `-h, --help` | Affiche l'aide |
 | `-V, --version` | Affiche la version |
@@ -199,7 +200,10 @@ Le niveau de log est contrôlé par la variable d'environnement `RUST_LOG` :
 # Niveau par défaut : info pour genesis-rs
 genesis-rs detect
 
-# Activer le debug pour plus de détails
+# Mode verbose : active le niveau debug (équivalent de RUST_LOG=genesis_rs=debug)
+genesis-rs -v detect
+
+# Activer le debug via variable d'environnement (prend la priorité sur -v)
 RUST_LOG=genesis_rs=debug genesis-rs bootstrap
 
 # Activer le trace pour tout voir
@@ -296,7 +300,7 @@ Pour maintenir une base de code saine, le projet impose :
 1. **Formatage** : `cargo fmt` est obligatoire (`just format-check`).
 2. **Linting** : `clippy` ne doit retourner aucune erreur ou warning (`just lint-rust`).
 3. **CI Validation** : Les fichiers `.yml` de GitHub Actions sont validés par `actionlint` (`just lint-ci`).
-4. **Tests** : 65 tests doivent passer (50 unitaires + 14 fonctionnels + 1 doctest) (`just test`).
+4. **Tests** : 68 tests doivent passer (50 unitaires + 17 fonctionnels + 1 doctest) (`just test`).
 5. **Documentation** : `cargo doc --no-deps` doit compiler sans warnings. Tous les items `pub` ont des `///` docs.
 6. **Sécurité** : `cargo audit` ne doit pas présenter de vulnérabilités connues.
 7. **Validation des entrées** : Les noms de paquets sont validés par whitelist (`[a-zA-Z0-9.+-]`, max 256 caractères).

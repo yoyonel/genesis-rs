@@ -232,3 +232,49 @@ fn test_detect_output_cpu_has_cores() {
         );
     }
 }
+
+// ─── Verbose Flag Tests ──────────────────────────────────────────────────────
+
+#[test]
+fn test_help_shows_verbose_option() {
+    Command::cargo_bin("genesis-rs")
+        .unwrap()
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--verbose"));
+}
+
+#[test]
+fn test_verbose_flag_enables_debug_output() {
+    let output = Command::cargo_bin("genesis-rs")
+        .unwrap()
+        .env("NO_COLOR", "1")
+        .args(["-v", "detect"])
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if output.status.success() {
+        assert!(
+            stderr.contains("DEBUG"),
+            "Verbose mode should produce DEBUG-level output: {stderr}"
+        );
+    }
+}
+
+#[test]
+fn test_default_no_debug_output() {
+    let output = Command::cargo_bin("genesis-rs")
+        .unwrap()
+        .env("NO_COLOR", "1")
+        .arg("detect")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if output.status.success() {
+        assert!(
+            !stderr.contains("DEBUG"),
+            "Default mode should NOT produce DEBUG-level output: {stderr}"
+        );
+    }
+}

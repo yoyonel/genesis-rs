@@ -8,7 +8,7 @@ use crate::executor::{CommandExecutor, RealExecutor};
 use anyhow::{Result, bail};
 use os_info::{Info, Type};
 use sysinfo::{Disks, System};
-use tracing::info;
+use tracing::{debug, info};
 
 pub mod arch;
 
@@ -62,6 +62,7 @@ pub trait SystemPlatform {
         let mut sys = System::new_all();
         sys.refresh_all();
 
+        debug!("Collecting system information via sysinfo");
         info!("--- SYSTEM SUMMARY ---");
         info!(os = %self.display_name(), "OS detected");
 
@@ -186,6 +187,7 @@ fn detect_from_info(
     executor: Box<dyn CommandExecutor>,
 ) -> Option<Box<dyn SystemPlatform>> {
     let version = info.version().to_string();
+    debug!(os_type = ?info.os_type(), version = %version, "Detecting platform");
     match info.os_type() {
         Type::Debian => Some(Box::new(AptPlatform {
             name: "Debian",
