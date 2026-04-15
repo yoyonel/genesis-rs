@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`--verbose` / `-v` CLI flag**: Global flag that switches logging from INFO to DEBUG level. `RUST_LOG` still takes precedence. Debug messages added to platform detection and config loading.
+- **`.deb` packaging**: `cargo-deb` integration with `[package.metadata.deb]` in Cargo.toml. Binary installs to `/usr/bin/`, docs to `/usr/share/doc/genesis-rs/`. Justfile recipe: `just package-deb`.
+- **AUR PKGBUILD**: `packaging/arch/PKGBUILD` for Arch Linux users. Builds from source with `cargo build --release`, runs tests in `check()`. Installable via `makepkg -si`. Justfile recipe: `just package-arch`.
+- **MIT LICENSE file**: Added explicit license file for packaging compliance.
+- **Release CI**: `.deb` build job added to `release.yml`, attached to GitHub releases alongside raw binaries.
+- **Package metadata**: `description`, `homepage`, `repository` fields added to `Cargo.toml`.
+
 ## [0.1.0] - 2026-04-14
 
 ### Added
@@ -28,4 +39,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Coverage**: `cargo-tarpaulin` with HTML reports in CI artifacts
 - **Pre-commit hooks**: `cargo fmt` + `clippy` + `actionlint` + `shellcheck`
 
+[Unreleased]: https://github.com/yoyonel/genesis-rs/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/yoyonel/genesis-rs/releases/tag/v0.1.0
