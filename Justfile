@@ -99,6 +99,11 @@ build-arm:
 build-arm-native target=ARM_TARGET:
     cargo build --release --target {{target}}
 
+# Build .deb package (requires cargo-deb)
+package-deb: (build TARGET)
+    cargo deb --no-build --target {{TARGET}}
+    @echo "✅ .deb package built in target/{{TARGET}}/debian/"
+
 # ─── VM Provisioning ─────────────────────────────────────────────────────────
 
 # Generate SSH key pair for E2E tests (idempotent)
