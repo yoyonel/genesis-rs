@@ -20,7 +20,8 @@
 - **🧪 E2E Testing Industriel** : Pipeline complet de test sur QEMU (Headless) avec injection Cloud-Init et vérification d'intégrité SHA-256/SHA-512 des images.
 - **⏱️ Benchmarking & Profiling** : Mesure précise des temps de boot et de déploiement, intégrée directement dans la CI/CD.
 - **🤖 CI/CD GitHub Actions** : Validation automatique de chaque commit sur les 3 distributions cibles.
-- **🖥️ Gestion PID des VMs** : Suivi et nettoyage fiable des VMs QEMU par fichier PID (remplace `killall`).
+- **� Packaging Natif** : `.deb` via `cargo-deb` (Debian/Ubuntu) et PKGBUILD pour l'AUR (Arch Linux).
+- **�🖥️ Gestion PID des VMs** : Suivi et nettoyage fiable des VMs QEMU par fichier PID (remplace `killall`).
 
 ## 🛠️ Architecture
 
@@ -121,6 +122,9 @@ just clean-vms           # Arrêter toutes les VMs (PID-based, safe)
 
 just ci-local            # Pipeline CI complet en local (3 distros)
 just benchmark           # Mesurer les performances de boot/deploy
+
+just package-deb         # Construire le paquet .deb (cargo-deb)
+just package-arch        # Construire le paquet Arch (makepkg)
 
 just --list         # Voir toutes les recettes disponibles
 ```
@@ -281,15 +285,20 @@ genesis-rs/
 │   ├── try-vm.sh             # Workflow complet : build → boot → deploy → bootstrap → shell
 │   ├── reset-overlay.sh      # Reset overlay VM à l'état pristine
 │   └── provision-setup.sh    # Génération de clé SSH E2E (idempotent)
+├── packaging/
+│   └── arch/
+│       └── PKGBUILD          # PKGBUILD pour l'AUR (Arch Linux)
 ├── genesis.toml.example      # Exemple de configuration TOML
+├── LICENSE                   # Licence MIT
 ├── .github/
 │   ├── copilot-instructions.md  # Directives pour GitHub Copilot
 │   ├── instructions/            # Instructions contextuelles (commits, tests, GitHub)
 │   └── workflows/
 │       ├── ci.yml               # Pipeline CI (quality → build → E2E)
+│       ├── release.yml          # Release (binaires + .deb → GitHub Releases)
 │       └── docs.yml             # Déploiement Rustdoc sur GitHub Pages
 ├── Justfile                  # Recettes de développement (organisées par section)
-├── Cargo.toml                # Dépendances Rust
+├── Cargo.toml                # Dépendances Rust (+ metadata cargo-deb)
 └── docs/                     # Documentation technique
 ```
 
