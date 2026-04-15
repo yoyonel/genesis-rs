@@ -1,0 +1,51 @@
+# cargo-deny configuration for genesis-rs
+# https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+targets = [
+    "x86_64-unknown-linux-musl",
+    "aarch64-unknown-linux-musl",
+]
+
+# ─── Advisories ───────────────────────────────────────────────────────────────
+# Check for known vulnerabilities in the RustSec advisory database.
+# In v0.19+, vulnerabilities/unsound/notice always error. Only unmaintained/yanked configurable.
+[advisories]
+unmaintained = "workspace"
+yanked = "warn"
+
+# ─── Licenses ─────────────────────────────────────────────────────────────────
+# Only allow permissive open-source licenses.
+# In v0.19+, unlicensed/deny/copyleft are removed — all licenses denied unless explicitly allowed.
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "Zlib",
+    "Unlicense",
+    "Unicode-3.0",
+]
+confidence-threshold = 0.8
+
+[licenses.private]
+ignore = true
+
+[[licenses.clarify]]
+crate = "genesis-rs"
+expression = "MIT"
+license-files = []
+
+# ─── Bans ─────────────────────────────────────────────────────────────────────
+# Detect duplicate crate versions and deny specific crates.
+[bans]
+multiple-versions = "warn"
+wildcards = "allow"
+
+# ─── Sources ──────────────────────────────────────────────────────────────────
+# Only allow crates from crates.io (no git deps, no unknown registries).
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
