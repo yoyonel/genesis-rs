@@ -48,6 +48,10 @@ check-actions:
 lint-shell:
     shellcheck scripts/*.sh
 
+# Check dependency licenses, advisories, bans, and sources (cargo-deny)
+lint-deps:
+    cargo deny check all
+
 # Format code
 format:
     cargo fmt
