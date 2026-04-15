@@ -300,6 +300,7 @@ genesis-rs/
 ├── Justfile                  # Recettes de développement (organisées par section)
 ├── Cargo.toml                # Dépendances Rust (+ metadata cargo-deb)
 └── docs/                     # Documentation technique
+    └── rpi4-runner.md        # Setup et workflow du runner RPi4 self-hosted
 ```
 
 ## 🛡️ Standards de Développement
@@ -321,15 +322,16 @@ just install-hooks   # Installe le hook (fait automatiquement par just setup)
 
 ## 🤖 Pipeline CI/CD
 
-Chaque push/PR déclenche une pipeline en 8 jobs :
+Chaque push/PR déclenche une pipeline en 9 jobs :
 
 ```
-quality (stable)  ─┐
-quality (MSRV)    ─┤──→ build (x86_64 + ARM64 statiques) ──→ e2e ×3 (Debian, Arch, Raspbian)
-security          ─┘
-coverage          ─── (parallèle, indépendant)
+quality (stable)  ─┐                                        ┌─ e2e (Debian, Arch) [QEMU x86]
+quality (MSRV)    ─┤──→ build (x86_64 + ARM64 statiques) ──┤
+security          ─┘                                        └─ check-rpi4 ──→ e2e-raspbian [bare-metal ARM64]
+coverage          ─── (parallèle, indépendant)                              OR e2e-raspbian [QEMU ARM64 fallback]
 ```
 
+- **Raspbian E2E Fallback** : le job `check-rpi4` vérifie la disponibilité du runner RPi4. Si le RPi4 est offline, un fallback automatique sur QEMU ARM64 (ubuntu-latest) prend le relais. Voir [docs/rpi4-runner.md](docs/rpi4-runner.md).
 - **Coverage** : `cargo-tarpaulin` avec rapport HTML en artifact
 - **Release** : le push d'un tag `v*` déclenche un build multi-arch et crée une [GitHub Release](https://github.com/yoyonel/genesis-rs/releases) avec les binaires statiques
 
