@@ -332,7 +332,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            qemu-system-arm qemu-efi-aarch64 qemu-utils genisoimage
+            qemu-system-arm qemu-efi-aarch64 qemu-utils genisoimage ipxe-qemu
 
       - name: Install Just
         uses: extractions/setup-just@v4
