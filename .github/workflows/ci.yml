@@ -187,10 +187,6 @@ jobs:
             port: 22222
             target: x86_64-unknown-linux-musl
             qemu_pkgs: "qemu-system-x86 qemu-utils genisoimage"
-          - os: raspbian
-            port: 22223
-            target: aarch64-unknown-linux-musl
-            qemu_pkgs: "qemu-system-arm qemu-utils genisoimage qemu-efi-aarch64 ipxe-qemu"
             
     steps:
       - uses: actions/checkout@v6
@@ -234,3 +230,35 @@ jobs:
       - name: Run E2E Verification (System Info)
         run: just ci-test ${{ matrix.os }} ${{ matrix.port }} ${{ matrix.target }} "true"
         timeout-minutes: 8
+
+  e2e-raspbian:
+    name: E2E Verify - raspbian (bare-metal ARM64)
+    needs: build
+    runs-on: [self-hosted, linux, ARM64]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: genesis-binaries
+          path: target
+
+      - name: Fix binary permissions
+        run: find target -name genesis-rs -type f -exec chmod +x {} \;
+
+      - name: Run detect (bare-metal)
+        run: |
+          BINARY="target/aarch64-unknown-linux-musl/release/genesis-rs"
+          chmod +x "$BINARY"
+          "$BINARY" detect 2>&1 | tee /tmp/genesis-detect.log
+          grep -q "SYSTEM SUMMARY" /tmp/genesis-detect.log
+          echo "✅ Bare-metal ARM64 detect passed"
+
+      - name: Run detect verbose (bare-metal)
+        run: |
+          BINARY="target/aarch64-unknown-linux-musl/release/genesis-rs"
+          "$BINARY" -v detect 2>&1 | tee /tmp/genesis-detect-verbose.log
+          grep -q "DEBUG" /tmp/genesis-detect-verbose.log
+          echo "✅ Bare-metal ARM64 verbose detect passed"
