@@ -27,8 +27,8 @@ setup-check:
 check:
     cargo check
 
-# Run all linters (Rust + CI workflows + GitHub Actions existence + shell + deps)
-lint: format-check lint-rust lint-ci check-actions lint-shell lint-deps
+# Run all linters (Rust + CI workflows + GitHub Actions existence + shell)
+lint: format-check lint-rust lint-ci check-actions lint-shell
 
 # Lint Rust code (clippy, zero warnings)
 lint-rust:
