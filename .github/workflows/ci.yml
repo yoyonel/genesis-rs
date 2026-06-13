@@ -82,12 +82,12 @@ jobs:
 
       - name: Run cargo audit
         run: |
-          command -v cargo-audit >/dev/null 2>&1 || cargo install cargo-audit --locked
+          command -v cargo-audit >/dev/null 2>&1 || cargo install cargo-audit
           cargo audit
 
       - name: Run cargo deny
         run: |
-          command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --locked
+          command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny
           cargo deny check all
 
   coverage:
