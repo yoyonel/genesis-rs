@@ -19,7 +19,7 @@ jobs:
       matrix:
         rust: [stable, "1.85.0"]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
@@ -28,7 +28,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Cache cargo registry & build
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -67,13 +67,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo-audit binary
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/bin/cargo-audit
@@ -95,13 +95,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo registry & tarpaulin
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -129,7 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -137,7 +137,7 @@ jobs:
           targets: x86_64-unknown-linux-musl, aarch64-unknown-linux-musl
 
       - name: Cache cargo registry & build
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -147,7 +147,7 @@ jobs:
           restore-keys: cargo-build-
           
       - name: Cache APT packages (cross-linker)
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: /var/cache/apt/archives/*.deb
           key: apt-build-cross-v1
@@ -189,7 +189,7 @@ jobs:
             qemu_pkgs: "qemu-system-x86 qemu-utils genisoimage"
             
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Download Artifacts
         uses: actions/download-artifact@v8
@@ -204,7 +204,7 @@ jobs:
         run: sudo chmod 666 /dev/kvm
 
       - name: Cache APT packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: /var/cache/apt/archives/*.deb
           key: apt-e2e-${{ matrix.os }}-v1
@@ -219,7 +219,7 @@ jobs:
 
       - name: Cache Cloud Images
         id: cache-images
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: tests/e2e/*.qcow2
           key: cloud-images-v2-${{ matrix.os }}
@@ -275,7 +275,7 @@ jobs:
     runs-on: [self-hosted, linux, ARM64]
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Download Artifacts
         uses: actions/download-artifact@v8
@@ -308,7 +308,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Download Artifacts
         uses: actions/download-artifact@v8
@@ -323,7 +323,7 @@ jobs:
         run: sudo chmod 666 /dev/kvm
 
       - name: Cache APT packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: /var/cache/apt/archives/*.deb
           key: apt-e2e-raspbian-qemu-v1
@@ -338,7 +338,7 @@ jobs:
         uses: extractions/setup-just@v4
 
       - name: Cache Cloud Images
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: tests/e2e/*.qcow2
           key: cloud-images-v2-raspbian
